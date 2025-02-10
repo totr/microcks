@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.util.asyncapi;
 
@@ -48,9 +45,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * This is an implementation of HttpTestRunner that deals with AsyncAPI schema testing.
- * It delegates the consumption of asynchronous messages and the actual validation to
- * the <b>microcks-async-minion</b> component, triggering it through an API call.
+ * This is an implementation of HttpTestRunner that deals with AsyncAPI schema testing. It delegates the consumption of
+ * asynchronous messages and the actual validation to the <b>microcks-async-minion</b> component, triggering it through
+ * an API call.
  * @author laurent
  */
 public class AsyncAPITestRunner extends AbstractTestRunner<HttpMethod> {
@@ -71,7 +68,7 @@ public class AsyncAPITestRunner extends AbstractTestRunner<HttpMethod> {
    /**
     * Build a new AsyncAPITestRunner using a resource repository for retrieving AsyncAPI specification.
     * @param resourceRepository The repository that contains AsyncAPI specification to validate
-    * @param secretRepository The repository for accessing secrets for connecting test endpoints
+    * @param secretRepository   The repository for accessing secrets for connecting test endpoints
     */
    public AsyncAPITestRunner(ResourceRepository resourceRepository, SecretRepository secretRepository) {
       this.resourceRepository = resourceRepository;
@@ -91,10 +88,10 @@ public class AsyncAPITestRunner extends AbstractTestRunner<HttpMethod> {
    }
 
    @Override
-   public List<TestReturn> runTest(Service service, Operation operation, TestResult testResult,
-                                   List<Request> requests, String endpointUrl, HttpMethod method) throws URISyntaxException, IOException {
+   public List<TestReturn> runTest(Service service, Operation operation, TestResult testResult, List<Request> requests,
+         String endpointUrl, HttpMethod method) throws URISyntaxException, IOException {
 
-      if (log.isDebugEnabled()){
+      if (log.isDebugEnabled()) {
          log.debug("Launching test run on " + endpointUrl + " for ms");
       }
 
@@ -133,9 +130,9 @@ public class AsyncAPITestRunner extends AbstractTestRunner<HttpMethod> {
 
       // Actually execute request.
       ClientHttpResponse httpResponse = null;
-      try{
+      try {
          httpResponse = httpRequest.execute();
-      } catch (IOException ioe){
+      } catch (IOException ioe) {
          log.error("IOException while executing request ", ioe);
       } finally {
          if (httpResponse != null) {

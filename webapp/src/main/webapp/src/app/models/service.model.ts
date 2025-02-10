@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { Metadata } from './commons.model';
 
@@ -22,6 +19,7 @@ export class Api {
   name: string;
   version: string;
   resource: string;
+  referencePayload: string;
 }
 
 export class Service {
@@ -35,11 +33,13 @@ export class Service {
   sourceArtifact: string;
 }
 export enum ServiceType {
-  SOAP_HTTP = "SOAP_HTTP",
-  REST = "REST",
-  EVENT = "EVENT",
-  GRPC = "GRPC",
-  GENERIC_REST = "GENERIC_REST"
+  SOAP_HTTP = 'SOAP_HTTP',
+  REST = 'REST',
+  EVENT = 'EVENT',
+  GRPC = 'GRPC',
+  GENERIC_REST = 'GENERIC_REST',
+  GENERIC_EVENT = 'GENERIC_EVENT',
+  GRAPHQL = 'GRAPHQL'
 }
 
 export class Operation {
@@ -48,7 +48,7 @@ export class Operation {
   action: string;
   inputName: string;
   outputName: string;
-  bindings: {string: Binding[]}
+  bindings: {string: Binding[]};
   dispatcher: string;
   dispatcherRules: string;
   defaultDelay: number;
@@ -74,8 +74,12 @@ export class Binding {
 export enum BindingType {
   KAFKA,
   MQTT,
+  NATS,
   WS,
-  AMQP1
+  AMQP,
+  AMQP1,
+  GOOGLEPUBSUB,
+  SQS
 }
 export class ParameterConstraint {
   name: string;
@@ -97,6 +101,7 @@ export class Contract {
   type: ContractType;
   serviceId: string;
   sourceArtifact: string;
+  mainArtifact: boolean;
 }
 export enum ContractType {
   WSDL,
@@ -110,7 +115,11 @@ export enum ContractType {
   ASYNC_API_SCHEMA,
   AVRO_SCHEMA,
   PROTOBUF_SCHEMA,
-  PROTOBUF_DESCRIPTOR
+  PROTOBUF_DESCRIPTOR,
+  GRAPHQL_SCHEMA,
+  POSTMAN_COLLECTION,
+  SOAP_UI_PROJECT,
+  JSON_FRAGMENT
 }
 
 export class Header {
@@ -141,15 +150,17 @@ export class Response extends Message {
   status: string;
   mediaType: string;
   dispatchCriteria: string;
-  isFault: boolean = false;
+  isFault = false;
 }
 export class EventMessage extends Message {
   id: string;
   mediaType: string;
-  dispatchCriteria: string;  
+  dispatchCriteria: string;
 }
 
 export abstract class Exchange {
+  type?: string;
+  eventMessage?: EventMessage;
 }
 export class UnidirectionalEvent extends Exchange {
   eventMessage: EventMessage;
@@ -161,7 +172,7 @@ export class RequestResponsePair extends Exchange {
 
 export class ServiceView {
   service: Service;
-  messagesMap: {string : Exchange[]};
+  messagesMap: {string: Exchange[]};
 }
 
 export class GenericResource {

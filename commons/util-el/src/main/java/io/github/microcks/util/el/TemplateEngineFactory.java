@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.util.el;
 
@@ -42,6 +39,7 @@ public class TemplateEngineFactory {
       engine.getContext().registerFunction("randomInt", RandomIntELFunction.class);
       engine.getContext().registerFunction("randomString", RandomStringELFunction.class);
       engine.getContext().registerFunction("randomBoolean", RandomBooleanELFunction.class);
+      engine.getContext().registerFunction("randomValue", RandomValueELFunction.class);
 
       engine.getContext().registerFunction("randomFirstName", RandomFirstNameELFunction.class);
       engine.getContext().registerFunction("randomLastName", RandomLastNameELFunction.class);
@@ -59,6 +57,8 @@ public class TemplateEngineFactory {
       engine.getContext().registerFunction("randomPhoneNumber", RandomPhoneNumberELFunction.class);
 
       engine.getContext().registerFunction("randomEmail", RandomEmailELFunction.class);
+
+      engine.getContext().registerFunction("put", PutInContextELFunction.class);
 
       return engine;
    }

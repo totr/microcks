@@ -3,7 +3,7 @@
   <parent>
     <artifactId>microcks</artifactId>
     <groupId>io.github.microcks</groupId>
-    <version>1.4.2-SNAPSHOT</version>
+    <version>1.11.1-SNAPSHOT</version>
   </parent>
   <modelVersion>4.0.0</modelVersion>
 
@@ -12,37 +12,39 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <multi-project.rootdir>..</multi-project.rootdir>
     <docker.image.prefix>microcks</docker.image.prefix>
     <docker.image.name>microcks</docker.image.name>
-    <java.version>11</java.version>
-    <junit.version>4.13.1</junit.version>
-    <keycloak.version>14.0.0</keycloak.version>
-    <mongo-java-server.version>1.24.0</mongo-java-server.version>
-    <soapui.version>5.6.0</soapui.version>
-    <soapui.jayway.version>0.9.1</soapui.jayway.version>
-    <grpc.version>1.37.0</grpc.version>
+    <java.version>21</java.version>
+    <bouncycastle.version>1.78</bouncycastle.version>
+    <snakeyaml.version>2.2</snakeyaml.version>
+    <mongo-java-server.version>1.45.0</mongo-java-server.version>
+    <apache-httpclient.version>5.3</apache-httpclient.version>
+    <commons-lang3.version>3.17.0</commons-lang3.version>
+    <commons-io.version>2.16.1</commons-io.version>
+    <commons-codec.version>1.17.1</commons-codec.version>
+    <groovy.version>4.0.24</groovy.version>
+    <protobuf.version>3.25.5</protobuf.version>
+    <grpc.version>1.61.0</grpc.version>
+    <protoc-jar.version>3.21.8</protoc-jar.version>
+    <openai-gpt3-java.version>0.14.0</openai-gpt3-java.version>
+    <opentelemetry.version>1.33.6</opentelemetry.version>
   </properties>
 
   <dependencyManagement>
     <dependencies>
-      <dependency>
-        <groupId>org.keycloak.bom</groupId>
-        <artifactId>keycloak-adapter-bom</artifactId>
-        <version>${keycloak.version}</version>
-        <type>pom</type>
-        <scope>import</scope>
-      </dependency>
-      <dependency>
-        <groupId>com.jayway.jsonpath</groupId>
-        <artifactId>json-path</artifactId>
-        <version>${soapui.jayway.version}</version>
-      </dependency>
       <dependency>
         <groupId>io.grpc</groupId>
         <artifactId>grpc-bom</artifactId>
         <version>${grpc.version}</version>
         <type>pom</type>
         <scope>import</scope>
+      </dependency>
+      <!-- Force Snakeyaml here as libs still pulls 1.33 version full of CVEs -->
+      <dependency>
+        <groupId>org.yaml</groupId>
+        <artifactId>snakeyaml</artifactId>
+        <version>${snakeyaml.version}</version>
       </dependency>
     </dependencies>
   </dependencyManagement>
@@ -75,108 +77,86 @@
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-actuator</artifactId>
     </dependency>
+    <!-- Micrometer Prometheus registry  -->
+    <dependency>
+      <groupId>io.micrometer</groupId>
+      <artifactId>micrometer-registry-prometheus</artifactId>
+    </dependency>
+
+    <!-- observability with Otel -->
+    <dependency>
+      <groupId>io.opentelemetry.javaagent</groupId>
+      <artifactId>opentelemetry-javaagent</artifactId>
+      <version>${opentelemetry.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>io.opentelemetry.instrumentation</groupId>
+      <artifactId>opentelemetry-instrumentation-annotations</artifactId>
+      <version>${opentelemetry.version}</version>
+    </dependency>
+
     <dependency>
       <groupId>org.springframework.kafka</groupId>
       <artifactId>spring-kafka</artifactId>
     </dependency>
+
     <dependency>
-      <groupId>org.keycloak</groupId>
-      <artifactId>keycloak-spring-boot-starter</artifactId>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-security</artifactId>
     </dependency>
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
-      <version>4.5.2</version>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-resource-server</artifactId>
     </dependency>
+    <dependency>
+      <groupId>org.bouncycastle</groupId>
+      <artifactId>bcpkix-jdk15to18</artifactId>
+      <version>${bouncycastle.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>commons-codec</groupId>
+      <artifactId>commons-codec</artifactId>
+      <version>${commons-codec.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-oauth2-client</artifactId>
+    </dependency>
+
     <!-- Required since Spring 1.5 to 2.3 migration -->
     <dependency>
-      <groupId>xml-apis</groupId>
-      <artifactId>xml-apis</artifactId>
-      <version>1.4.01</version>
+      <groupId>org.apache.httpcomponents.client5</groupId>
+      <artifactId>httpclient5</artifactId>
+      <version>${apache-httpclient.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-lang3</artifactId>
+      <version>${commons-lang3.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.smartbear.soapui</groupId>
-      <artifactId>soapui</artifactId>
-      <version>${soapui.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.jgoodies</groupId>
-          <artifactId>looks</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.openjfx</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>amf</groupId>
-          <artifactId>flex-messaging-common</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>amf</groupId>
-          <artifactId>flex-messaging-opt</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>amf</groupId>
-          <artifactId>flex-messaging-proxy</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>amf</groupId>
-          <artifactId>flex-messaging-remoting</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>l2fprod</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.bouncycastle</groupId>
-          <artifactId>bcprov-ext-jdk15on</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.sonatype.install4j</groupId>
-          <artifactId>i4jruntime</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>com.smartbear.utils.analytics</groupId>
-          <artifactId>*</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>net.sf.saxon</groupId>
-          <artifactId>saxon</artifactId>
-        </exclusion>
-        <exclusion>
-          <artifactId>servlet-api</artifactId>
-          <groupId>jetty</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>jetty</artifactId>
-          <groupId>jetty</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>jetty-util</artifactId>
-          <groupId>jetty</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>swingx</artifactId>
-          <groupId>swingx</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>htmlunit</artifactId>
-          <groupId>net.sourceforge.htmlunit</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>htmlunit-core-js</artifactId>
-          <groupId>net.sourceforge.htmlunit</groupId>
-        </exclusion>
-        <exclusion>
-          <artifactId>hermes</artifactId>
-          <groupId>hermesjms</groupId>
-        </exclusion>
-        <!-- We need a fresher guava for GRPC -->
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons-io.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.groovy</groupId>
+      <artifactId>groovy-xml</artifactId>
+      <version>${groovy.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.groovy</groupId>
+      <artifactId>groovy-json</artifactId>
+      <version>${groovy.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.groovy</groupId>
+      <artifactId>groovy-jsr223</artifactId>
+      <version>${groovy.version}</version>
     </dependency>
 
     <dependency>
@@ -202,31 +182,22 @@
       <version>6.0.53</version>
       <scope>provided</scope>
     </dependency>
-    <!--
-    <dependency>
-      <groupId>com.google.protobuf</groupId>
-      <artifactId>protobuf-java</artifactId>
-      <version>3.15.3</version>
-    </dependency>
-    -->
 
     <dependency>
       <groupId>com.google.protobuf</groupId>
       <artifactId>protobuf-java-util</artifactId>
-      <version>3.15.3</version>
+      <version>${protobuf.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.os72</groupId>
+      <groupId>io.github.microcks</groupId>
       <artifactId>protoc-jar</artifactId>
-      <version>3.11.4</version>
+      <version>${protoc-jar.version}</version>
     </dependency>
 
     <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>${junit.version}</version>
-      <!-- Needed by SoapUI for some assertions, so remove test scope -->
-      <!-- <scope>test</scope> -->
+      <groupId>com.theokanning.openai-gpt3-java</groupId>
+      <artifactId>api</artifactId>
+      <version>${openai-gpt3-java.version}</version>
     </dependency>
 
     <!-- Test related dependencies -->
@@ -240,6 +211,37 @@
       <groupId>de.bwaldvogel</groupId>
       <artifactId>mongo-java-server</artifactId>
       <version>${mongo-java-server.version}</version>
+      <scope>test</scope>
+    </dependency>
+
+    <dependency>
+      <groupId>org.skyscreamer</groupId>
+      <artifactId>jsonassert</artifactId>
+      <version>1.5.1</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>mongodb</artifactId>
+      <version>1.17.6</version>
+      <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>junit</groupId>
+          <artifactId>junit</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.github.dasniko</groupId>
+      <artifactId>testcontainers-keycloak</artifactId>
+      <version>3.0.0</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.testcontainers</groupId>
+      <artifactId>junit-jupiter</artifactId>
+      <version>1.19.3</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
@@ -266,6 +268,17 @@
           <encoding>${project.build.sourceEncoding}</encoding>
           <compilerArgument>-Xlint:deprecation</compilerArgument>
           <compilerArgument>-Xlint:unchecked</compilerArgument>
+          <compilerArgument>-parameters</compilerArgument>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>${maven-surefire-plugin.version}</version>
+        <configuration>
+          <includes>
+            <include>**/*Test.java</include>
+          </includes>
         </configuration>
       </plugin>
       <plugin>
@@ -277,25 +290,29 @@
   </build>
 
   <repositories>
+    <!--
     <repository>
       <id>spring-releases</id>
       <url>https://repo.spring.io/libs-release</url>
     </repository>
+    -->
     <repository>
-      <id>soapui</id>
-      <url>http://smartbearsoftware.com/repository/maven2</url>
+      <id>central</id>
+      <url>https://repo.maven.apache.org/maven2</url>
     </repository>
   </repositories>
   <pluginRepositories>
+    <!--
     <pluginRepository>
       <id>spring-releases</id>
       <url>https://repo.spring.io/libs-release</url>
     </pluginRepository>
+    -->
   </pluginRepositories>
 
   <profiles>
     <profile>
-      <id>uber</id>
+      <id>single</id>
       <build>
         <plugins>
           <plugin>
@@ -312,6 +329,43 @@
                 </goals>
               </execution>
             </executions>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>it</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>${maven-surefire-plugin.version}</version>
+            <configuration>
+              <includes>
+                <include>**/*IT.java</include>
+              </includes>
+              <reuseForks>false</reuseForks>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
+    </profile>
+    <profile>
+      <id>coverage</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-surefire-plugin</artifactId>
+            <version>${maven-surefire-plugin.version}</version>
+            <configuration>
+              <includes>
+                <include>**/*Test.java</include>
+                <include>**/*IT.java</include>
+              </includes>
+              <reuseForks>false</reuseForks>
+            </configuration>
           </plugin>
         </plugins>
       </build>
@@ -354,8 +408,8 @@
               </execution>
             </executions>
             <configuration>
-              <nodeVersion>v12.6.0</nodeVersion>
-              <npmVersion>6.9.0</npmVersion>
+              <nodeVersion>v16.0.0</nodeVersion>
+              <npmVersion>8.0.0</npmVersion>
               <workingDirectory>${basedir}/src/main/webapp</workingDirectory>
               <installDirectory>target</installDirectory>
             </configuration>
@@ -420,6 +474,14 @@
               <arguments>
                 <argument>--spring.profiles.active=prod</argument>
               </arguments>
+              <classifier>exec</classifier>
+              <excludes>
+                <!-- Otel agent should be provided at the bootstrap level within the container image -->
+                <exclude>
+                  <groupId>io.opentelemetry.javaagent</groupId>
+                  <artifactId>opentelemetry-javaagent</artifactId>
+                </exclude>
+              </excludes>
             </configuration>
             <executions>
               <execution>
@@ -435,9 +497,7 @@
             <version>1.2.2</version>
             <configuration>
               <imageName>${docker.image.prefix}/${docker.image.name}</imageName>
-              <!-- <dockerDirectory>src/main/docker</dockerDirectory> -->
-              <dockerDirectory>src/main/docker/ubi</dockerDirectory>
-              <!-- <dockerDirectory>src/main/docker/fabric8-ubi</dockerDirectory> -->
+              <dockerDirectory>src/main/docker</dockerDirectory>
               <resources>
                 <resource>
                   <targetPath>/</targetPath>
@@ -455,6 +515,31 @@
         <!-- default Spring profiles -->
         <spring.profiles.active>prod</spring.profiles.active>
       </properties>
+    </profile>
+    <profile>
+      <id>dev-otel</id>
+      <build>
+        <plugins>
+          <plugin>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-maven-plugin</artifactId>
+            <version>${spring-boot.version}</version>
+            <configuration>
+              <environmentVariables>
+                <!-- <JAVA_TOOL_OPTIONS>-javaagent:${user.home}/.m2/repository/io/opentelemetry/javaagent/opentelemetry-javaagent/${opentelemetry.version}/opentelemetry-javaagent-${opentelemetry.version}.jar</JAVA_TOOL_OPTIONS> -->
+                <JAVA_TOOL_OPTIONS>-javaagent:${user.home}/Development/repository/io/opentelemetry/javaagent/opentelemetry-javaagent/${opentelemetry.version}/opentelemetry-javaagent-${opentelemetry.version}.jar</JAVA_TOOL_OPTIONS>
+                <OTEL_JAVAAGENT_ENABLED>true</OTEL_JAVAAGENT_ENABLED>
+                <OTEL_METRICS_EXPORTER>otlp</OTEL_METRICS_EXPORTER>
+                <OTEL_LOGS_EXPORTER>otlp</OTEL_LOGS_EXPORTER>
+                <OTEL_TRACES_EXPORTER>otlp</OTEL_TRACES_EXPORTER>
+                <OTEL_METRIC_EXPORT_INTERVAL>10000</OTEL_METRIC_EXPORT_INTERVAL>
+                <OTEL_EXPORTER_OTLP_TIMEOUT>7000</OTEL_EXPORTER_OTLP_TIMEOUT>
+                <OTEL_RESOURCE_ATTRIBUTES>service.name=${project.artifactId},service.namespace=${project.artifactId}-ns,service.instance.id=${project.artifactId}-dev,service.version=${project.version}</OTEL_RESOURCE_ATTRIBUTES>
+              </environmentVariables>
+            </configuration>
+          </plugin>
+        </plugins>
+      </build>
     </profile>
   </profiles>
 </project>

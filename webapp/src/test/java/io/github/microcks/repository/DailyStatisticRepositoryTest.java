@@ -1,51 +1,45 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.repository;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 import io.github.microcks.domain.DailyStatistic;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
 import org.springframework.test.annotation.DirtiesContext.ClassMode;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 /**
  * Test case for DailyStatisticRepository class.
  * @author laurent
  */
-@RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext(classMode = ClassMode.AFTER_EACH_TEST_METHOD)
-@ContextConfiguration(classes = RepositoryTestsConfiguration.class)
-@TestPropertySource(locations = {"classpath:/config/test.properties"})
-public class DailyStatisticRepositoryTest {
+@SpringJUnitConfig(classes = RepositoryTestsConfiguration.class)
+@TestPropertySource(locations = { "classpath:/config/test.properties" })
+class DailyStatisticRepositoryTest {
 
    @Autowired
    DailyStatisticRepository repository;
 
-   @Before
-   public void setUp(){
+   @BeforeEach
+   public void setUp() {
       // Create a bunch of statistics...
       DailyStatistic stat = new DailyStatistic();
       stat.setDay("20140319");
@@ -59,18 +53,20 @@ public class DailyStatisticRepositoryTest {
       stat.setServiceVersion("1.2");
       repository.save(stat);
    }
-   
+
    @Test
-   public void testFindByDayAndServiceNameAndServiceVersion(){
+   void testFindByDayAndServiceNameAndServiceVersion() {
       // Retrieve a stat using theses 3 criteria.
-      DailyStatistic stat = repository.findByDayAndServiceNameAndServiceVersion("20140319", "TestService1", "1.0");
+      DailyStatistic stat = repository.findByDayAndServiceNameAndServiceVersion("20140319", "TestService1", "1.0")
+            .get(0);
       assertNotNull(stat);
       assertNotNull(stat.getId());
       assertEquals("20140319", stat.getDay());
       assertEquals("TestService1", stat.getServiceName());
       assertEquals("1.0", stat.getServiceVersion());
       // Retrieve another stat object.
-      DailyStatistic otherStat = repository.findByDayAndServiceNameAndServiceVersion("20140319", "TestService1", "1.2");
+      DailyStatistic otherStat = repository.findByDayAndServiceNameAndServiceVersion("20140319", "TestService1", "1.2")
+            .get(0);
       assertNotNull(otherStat);
       assertNotNull(otherStat.getId());
       assertNotEquals(stat.getId(), otherStat.getId());

@@ -8,6 +8,12 @@ metadata:
     app: "{{ .Values.appName }}"
     container: mongodb
     group: microcks
+    {{- include "microcks-common-labels" . | nindent 4 }}
+  annotations:
+    {{- include "microcks-common-annotations" . | nindent 4 }}
+      {{- with .Values.mongodb.pvcAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   accessModes:
     - ReadWriteOnce
@@ -18,7 +24,7 @@ spec:
   storageClassName: {{ .Values.mongodb.storageClassName }}
   {{- end }}
 {{- end }}
-{{- if and .Values.keycloak.install .Values.keycloak.persistent }}
+{{- if and .Values.keycloak.enabled .Values.keycloak.install .Values.keycloak.persistent }}
 ---
 kind: PersistentVolumeClaim
 apiVersion: v1
@@ -28,6 +34,12 @@ metadata:
     app: "{{ .Values.appName }}"
     container: keycloak-postgresql
     group: microcks
+    {{- include "microcks-common-labels" . | nindent 4 }}
+  annotations:
+    {{- include "microcks-common-annotations" . | nindent 4 }}
+    {{- with .Values.keycloak.pvcAnnotations }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
 spec:
   accessModes:
     - ReadWriteOnce

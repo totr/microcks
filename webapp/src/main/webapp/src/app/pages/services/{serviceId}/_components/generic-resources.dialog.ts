@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { Component, OnInit } from '@angular/core';
 
@@ -26,7 +23,7 @@ import { Service, GenericResource } from '../../../../models/service.model';
 
 
 @Component({
-  selector: 'generic-resources-dialog',
+  selector: 'app-generic-resources-dialog',
   templateUrl: './generic-resources.dialog.html',
   styleUrls: ['./generic-resources.dialog.css']
 })
@@ -39,9 +36,9 @@ export class GenericResourcesDialogComponent implements OnInit {
 
   resources: GenericResource[];
   resourcesCount: number;
-  
+
   constructor(private servicesSvc: ServicesService, public bsModalRef: BsModalRef) {}
- 
+
   ngOnInit() {
     this.getGenericResources();
     this.countGenericResources();
@@ -54,7 +51,7 @@ export class GenericResourcesDialogComponent implements OnInit {
     } as PaginationConfig;
   }
 
-  getGenericResources(page: number = 1):void {
+  getGenericResources(page: number = 1): void {
     this.servicesSvc.getGenericResources(this.service).subscribe(results => this.resources = results);
   }
 
@@ -66,17 +63,17 @@ export class GenericResourcesDialogComponent implements OnInit {
   }
 
   handlePageSize($event: PaginationEvent) {
-    //this.updateItems();
+    // this.updateItems();
   }
 
   handlePageNumber($event: PaginationEvent) {
-    this.getGenericResources($event.pageNumber)
+    this.getGenericResources($event.pageNumber);
   }
 
   public printPaylaod(payload: any): string {
     if (payload != undefined && payload != null) {
       return JSON.stringify(payload);
     }
-    return "Cannot render payload as string !";
+    return 'Cannot render payload as string !';
   }
 }

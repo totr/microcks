@@ -1,5 +1,5 @@
-<div *ngIf="test | async as test">
-  <div *ngIf="service | async as service">
+<div *ngIf="test | async as test">
+  <div *ngIf="service | async as service">
     <div class="container-fluid breadcrumb-bar">
       <div class="row">
         <ol class="breadcrumb">
@@ -11,8 +11,14 @@
       </div>
     </div>
 
-    <h1>Test {{ test.id }}</h1>
-    <small>Created {{ test.testDate | timeAgo }}, run on {{ test.testDate | date:'medium' }}</small>
+    <h1>Test {{ test.id }}
+      <div class="pull-right">
+        <button class="btn btn-warning" (click)="openAddToCI()">
+          <span class="pficon pficon-in-progress"></span> Add to your CI/CD
+        </button>
+      </div>
+    </h1>
+    <small>Created {{ test.testDate | timeAgo }}, ran on {{ test.testDate | date:'medium' }}</small>
 
     <h3 class="section-label">Properties</h3>
 
@@ -28,6 +34,15 @@
           <span *ngIf="test.secretRef">
             <dt>Secret:</dt>
             <dd>{{ test.secretRef.name }}</dd>
+          </span>
+          <span *ngIf="test.authorizedClient">
+            <dt>OAuth2 client:</dt>
+            <dd>
+              <code>{{ test.authorizedClient.principalName }}</code> principal<br/>
+              <code>{{ test.authorizedClient.tokenUri }}</code> tokenUri<br/>
+              <code>{{ test.authorizedClient.grantType }}</code> grant<br/>
+              <code *ngIf="test.authorizedClient.scopes">{{ test.authorizedClient.scopes }}</code> scopes
+            </dd>
           </span>
         </dl>
       </div>
@@ -72,9 +87,9 @@
             <div class="list-pf-additional-content">
               <div>
                 <i *ngIf="test.inProgress && !timedOut(test)" class="fa fa-fw fa-refresh fa-spin"></i>
-                <i *ngIf="!test.inProgress && item.success" class="fa fa-fw fa-check-circle"></i> 
-                <i *ngIf="!test.inProgress && !item.success" class="fa fa-fw fa-times-circle"></i>
-                <i *ngIf="timedOut(test)" class="fa fa-fw fa-clock-o"></i>
+                <i *ngIf="item.success && item.elapsedTime > 0" class="fa fa-fw fa-check-circle"></i>
+                <i *ngIf="!item.success  && item.elapsedTime > -1" class="fa fa-fw fa-times-circle"></i>
+                <i *ngIf="item.elapsedTime == -1 && timedOut(test)" class="fa fa-fw fa-clock-o"></i>
                 <span class="time-elapsed">in {{ item.elapsedTime }} ms</span>
               </div>
             </div>
@@ -83,17 +98,17 @@
 
         <ng-template #resultDetailTemplate let-item="item" let-index="index">
           <tabset>
-            <tab *ngFor="let testStep of item.testStepResults" heading="{{ testStep.requestName || testStep.eventMessageName }}" (select)="onTestStepSelect(testStep, $event)">
+            <tab *ngFor="let testStep of item.testStepResults" heading="{{ testStep.requestName || testStep.eventMessageName }}" (select)="onTestStepSelect(testStep, $event)">
               <ng-template tabHeading>
-                <i *ngIf="test.inProgress" class="fa fa-fw fa-refresh fa-spin"></i>
-                <i *ngIf="!test.inProgress && testStep.success" class="fa fa-fw fa-check-circle"></i> 
-                <i *ngIf="!test.inProgress && !testStep.success" class="fa fa-fw fa-times-circle"></i>
+                <i *ngIf="test.inProgress && testStep.success === undefined" class="fa fa-fw fa-refresh fa-spin"></i>
+                <i *ngIf="testStep.success" class="fa fa-fw fa-check-circle"></i>
+                <i *ngIf="!testStep.success" class="fa fa-fw fa-times-circle"></i>
               </ng-template>
               <div class="row" *ngIf="testMessages[encode(item.operationName)]">  
                 <div class="col-md-6" *ngIf="service.type != 'EVENT'">
                   <h5 class="subsection-label">Request</h5>
 
-                  <pre *ngIf="messagePairFor(item.operationName, testStep.requestName).request.content"><code [highlight]="messagePairFor(item.operationName, testStep.requestName).request.content"></code></pre>
+                  <pre *ngIf="messagePairFor(item.operationName, testStep.requestName).request.content"><code [highlight]="messagePairFor(item.operationName, testStep.requestName).request.content" [languages]="hlLang"></code></pre>
                   <table class="table table-condensed" width="100%" *ngIf="messagePairFor(item.operationName, testStep.requestName).request.headers">
                     <thead>
                       <tr>
@@ -128,7 +143,7 @@
                       </dd>
                     </span>
                   </dl>
-                  <pre *ngIf="messagePairFor(item.operationName, testStep.requestName).response.content"><code [highlight]="messagePairFor(item.operationName, testStep.requestName).response.content"></code></pre>
+                  <pre *ngIf="messagePairFor(item.operationName, testStep.requestName).response.content"><code [highlight]="messagePairFor(item.operationName, testStep.requestName).response.content" [languages]="hlLang"></code></pre>
                   <table class="table table-condensed" width="100%" *ngIf="messagePairFor(item.operationName, testStep.requestName).response.headers">
                     <thead>
                       <tr>
@@ -163,7 +178,7 @@
                       </dd>
                     </span>
                   </dl>
-                  <pre *ngIf="eventMessageFor(item.operationName, testStep.eventMessageName).eventMessage.content"><code [highlight]="eventMessageFor(item.operationName, testStep.eventMessageName).eventMessage.content"></code></pre>
+                  <pre *ngIf="eventMessageFor(item.operationName, testStep.eventMessageName).eventMessage.content"><code [highlight]="eventMessageFor(item.operationName, testStep.eventMessageName).eventMessage.content" [languages]="hlLang"></code></pre>
                   <table class="table table-condensed" width="100%" *ngIf="eventMessageFor(item.operationName, testStep.eventMessageName).eventMessage.headers">
                     <thead>
                       <tr>

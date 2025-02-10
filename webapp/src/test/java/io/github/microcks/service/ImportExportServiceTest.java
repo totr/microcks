@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.service;
 
@@ -24,32 +21,31 @@ import io.github.microcks.domain.Service;
 import io.github.microcks.repository.RepositoryTestsConfiguration;
 import io.github.microcks.repository.ResourceRepository;
 import io.github.microcks.repository.ServiceRepository;
-import org.codehaus.jettison.json.JSONArray;
-import org.codehaus.jettison.json.JSONException;
-import org.codehaus.jettison.json.JSONObject;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test case for ImportExportService class.
  * @author laurent
  */
-@RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@ContextConfiguration(classes = RepositoryTestsConfiguration.class)
-@TestPropertySource(locations = {"classpath:/config/test.properties"})
-public class ImportExportServiceTest {
+@SpringJUnitConfig(classes = RepositoryTestsConfiguration.class)
+@TestPropertySource(locations = { "classpath:/config/test.properties" })
+class ImportExportServiceTest {
 
    @Autowired
    private ImportExportService service;
@@ -62,8 +58,8 @@ public class ImportExportServiceTest {
 
    private List<String> ids = new ArrayList<>();
 
-   @Before
-   public void setUp(){
+   @BeforeEach
+   public void setUp() {
       // Create a bunch of services...
       Service service = new Service();
       service.setName("HelloWorld");
@@ -93,44 +89,46 @@ public class ImportExportServiceTest {
    }
 
    @Test
-   public void testExportRepository(){
+   void testExportRepository() {
       String result = service.exportRepository(ids, "json");
 
+      ObjectMapper mapper = new ObjectMapper();
+
       // Check that result is a valid JSON object.
-      JSONObject jsonObj = null;
+      JsonNode jsonObj = null;
       try {
-         jsonObj = new JSONObject(result);
-      } catch (JSONException e) {
+         jsonObj = mapper.readTree(result);
+      } catch (IOException e) {
          fail("No exception should be thrown when parsing Json");
       }
 
-      try{
+      try {
          // Retrieve and assert on services part.
-         JSONArray services = jsonObj.getJSONArray("services");
-         assertEquals(3, services.length());
-         for (int i=0 ; i<services.length(); i++){
-            JSONObject service = services.getJSONObject(i);
-            String name = service.getString("name");
+         ArrayNode services = (ArrayNode) jsonObj.get("services");
+         assertEquals(3, services.size());
+         for (int i = 0; i < services.size(); i++) {
+            JsonNode service = services.get(i);
+            String name = service.get("name").asText();
             assertTrue("HelloWorld".equals(name) || "MyService-hello".equals(name));
          }
-      } catch (JSONException e) {
+      } catch (Exception e) {
          fail("Exception while getting services array");
       }
 
-      try{
+      try {
          // Retrieve and assert on resources part.
-         JSONArray resources = jsonObj.getJSONArray("resources");
-         assertEquals(1, resources.length());
-         JSONObject resource = resources.getJSONObject(0);
-         assertEquals("Resource 1", resource.getString("name"));
-         assertEquals("<wsdl></wsdl>", resource.getString("content"));
-      } catch (JSONException e) {
+         ArrayNode resources = (ArrayNode) jsonObj.get("resources");
+         assertEquals(1, resources.size());
+         JsonNode resource = resources.get(0);
+         assertEquals("Resource 1", resource.get("name").asText());
+         assertEquals("<wsdl></wsdl>", resource.get("content").asText());
+      } catch (Exception e) {
          fail("Exception while getting resources array");
       }
    }
 
    @Test
-   public void testImportRepository(){
+   void testImportRepository() {
       // Setup and export result.
       String json = "{\"services\":[{\"name\":\"Imp1\",\"version\":\"1.2\",\"xmlNS\":null,\"type\":null,\"operations\":[],\"id\":25638445759706201468670970602},"
             + "{\"name\":\"Imp2\",\"version\":\"1.1\",\"xmlNS\":null,\"type\":null,\"operations\":[],\"id\":25638445759706201468670970603}], "

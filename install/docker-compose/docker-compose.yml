@@ -2,26 +2,25 @@ version: '2'
 
 services:
   mongo:
-    image: mongo:3.4.23
+    image: mongo:4.4.29
     container_name: microcks-db
     volumes:
       - "~/tmp/microcks-data:/data/db"
 
   keycloak:
-    image: jboss/keycloak:14.0.0
+    image: quay.io/keycloak/keycloak:26.0.0
     container_name: microcks-sso
     ports:
       - "18080:8080"
     environment:
-      KEYCLOAK_USER: "admin"
-      KEYCLOAK_PASSWORD: "admin"
-      KEYCLOAK_IMPORT: "/tmp/microcks-realm.json"
-      KEYCLOAK_FRONTEND_URL: "http://localhost:18080/auth"
-    volumes: 
-      - "./keycloak-realm/microcks-realm-sample.json:/tmp/microcks-realm.json"
+      KEYCLOAK_ADMIN: "admin"
+      KEYCLOAK_ADMIN_PASSWORD: "admin"
+    volumes:
+      - "./keycloak-realm/microcks-realm-sample.json:/opt/keycloak/data/import/microcks-realm.json"
+    command: ["start-dev", "--hostname=http://localhost:18080", "--import-realm"]
 
   postman:
-    image: quay.io/microcks/microcks-postman-runtime:latest
+    image: quay.io/microcks/microcks-postman-runtime:0.6.0
     container_name: microcks-postman-runtime
 
   app:
@@ -29,7 +28,7 @@ services:
       - mongo
       - keycloak
       - postman
-    image: quay.io/microcks/microcks:latest
+    image: quay.io/microcks/microcks:1.11.0
     container_name: microcks
     ports:
       - "8080:8080"
@@ -41,5 +40,7 @@ services:
       - POSTMAN_RUNNER_URL=http://postman:3000
       - TEST_CALLBACK_URL=http://microcks:8080
       - SERVICES_UPDATE_INTERVAL=0 0 0/2 * * *
-      - KEYCLOAK_URL=http://keycloak:8080/auth
-      - KEYCLOAK_PUBLIC_URL=http://localhost:18080/auth
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_PUBLIC_URL=http://localhost:18080
+      - JAVA_OPTIONS=-Dspring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:18080/realms/microcks -Dspring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://keycloak:8080/realms/microcks/protocol/openid-connect/certs
+      #- MAX_UPLOAD_FILE_SIZE=3MB

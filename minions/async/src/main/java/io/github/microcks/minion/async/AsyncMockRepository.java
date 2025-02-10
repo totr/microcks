@@ -1,24 +1,21 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async;
 
-import javax.enterprise.context.ApplicationScoped;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -26,9 +23,8 @@ import java.util.stream.Collectors;
 
 @ApplicationScoped
 /**
- * Repository for AsyncMockDefinitions. Used as a backend storage for jobs that have to publish event messages
- * at specified frequencies. Has to be initialized at application startup and regularly keep-in-sync with
- * Microcks server.
+ * Repository for AsyncMockDefinitions. Used as a backend storage for jobs that have to publish event messages at
+ * specified frequencies. Has to be initialized at application startup and regularly keep-in-sync with Microcks server.
  * @author laurent
  */
 public class AsyncMockRepository {
@@ -60,8 +56,7 @@ public class AsyncMockRepository {
     */
    public void removeMockDefinitions(String serviceId) {
       Set<AsyncMockDefinition> serviceDefs = mockDefinitions.stream()
-            .filter(d -> d.getOwnerService().getId().equals(serviceId))
-            .collect(Collectors.toSet());
+            .filter(d -> d.getOwnerService().getId().equals(serviceId)).collect(Collectors.toSet());
       mockDefinitions.removeAll(serviceDefs);
    }
 
@@ -70,9 +65,7 @@ public class AsyncMockRepository {
     * @return A set of frequencies for definitions operations
     */
    public Set<Long> getMockDefinitionsFrequencies() {
-      return mockDefinitions.stream()
-            .map(d -> d.getOperation().getDefaultDelay())
-            .collect(Collectors.toSet());
+      return mockDefinitions.stream().map(d -> d.getOperation().getDefaultDelay()).collect(Collectors.toSet());
    }
 
    /**
@@ -81,21 +74,19 @@ public class AsyncMockRepository {
     * @return A set of AsyncMockDefinition having specified operation frequency
     */
    public Set<AsyncMockDefinition> getMockDefinitionsByFrequency(Long frequency) {
-      return mockDefinitions.stream()
-            .filter(d -> d.getOperation().getDefaultDelay().equals(frequency))
+      return mockDefinitions.stream().filter(d -> d.getOperation().getDefaultDelay().equals(frequency))
             .collect(Collectors.toSet());
    }
 
    /**
     * Retrieve the AsyncMockDefinition corresponding to a specified service and version.
     * @param serviceName The service name to get definition for
-    * @param version The service version to get definition for
+    * @param version     The service version to get definition for
     * @return Should return an empty of 1 element set only.
     */
    public Set<AsyncMockDefinition> getMockDefinitionsByServiceAndVersion(String serviceName, String version) {
-      return mockDefinitions.stream()
-            .filter(d -> d.getOwnerService().getName().equals(serviceName)
-                  && d.getOwnerService().getVersion().equals(version))
+      return mockDefinitions.stream().filter(
+            d -> d.getOwnerService().getName().equals(serviceName) && d.getOwnerService().getVersion().equals(version))
             .collect(Collectors.toSet());
    }
 }

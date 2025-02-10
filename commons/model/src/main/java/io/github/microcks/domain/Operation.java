@@ -1,31 +1,28 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.domain;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Set;
 
 /**
- * An Operation / action of a micro service. Holds information on messages constitution
- * (inputName, outputName, bindings) and how dispatch request to them.
+ * An Operation / action of a micro service. Holds information on messages constitution (inputName, outputName,
+ * bindings) and how dispatch request to them.
  * @author laurent
  */
 public class Operation {
@@ -42,8 +39,8 @@ public class Operation {
    private String dispatcherRules;
    private Long defaultDelay;
 
-   private List<String> resourcePaths;
-   private List<ParameterConstraint> parameterConstraints;
+   private Set<String> resourcePaths;
+   private Set<ParameterConstraint> parameterConstraints;
 
    public String getName() {
       return name;
@@ -132,32 +129,34 @@ public class Operation {
       this.defaultDelay = defaultDelay;
    }
 
-   public List<String> getResourcePaths() {
+   public Set<String> getResourcePaths() {
       return resourcePaths;
    }
 
-   public void setResourcePaths(List<String> resourcePaths) {
+   public void setResourcePaths(Set<String> resourcePaths) {
       this.resourcePaths = resourcePaths;
    }
 
    public void addResourcePath(String resourcePath) {
       if (this.resourcePaths == null) {
-         this.resourcePaths = new ArrayList<>();
+         this.resourcePaths = new HashSet<>();
       }
-      resourcePaths.add(resourcePath);
+      if (!this.resourcePaths.contains(resourcePath)) {
+         this.resourcePaths.add(resourcePath);
+      }
    }
 
-   public List<ParameterConstraint> getParameterConstraints() {
+   public Set<ParameterConstraint> getParameterConstraints() {
       return parameterConstraints;
    }
 
-   public void setParameterConstraints(List<ParameterConstraint> parameterConstraints) {
+   public void setParameterConstraints(Set<ParameterConstraint> parameterConstraints) {
       this.parameterConstraints = parameterConstraints;
    }
 
    public void addParameterConstraint(ParameterConstraint constraint) {
       if (this.parameterConstraints == null) {
-         this.parameterConstraints = new ArrayList<>();
+         this.parameterConstraints = new HashSet<>();
       }
       parameterConstraints.add(constraint);
    }

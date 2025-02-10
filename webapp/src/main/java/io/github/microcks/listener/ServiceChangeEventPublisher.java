@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.listener;
 
@@ -31,42 +28,52 @@ import io.github.microcks.repository.ServiceRepository;
 import io.github.microcks.service.MessageService;
 import io.github.microcks.util.IdBuilder;
 import io.github.microcks.domain.ServiceView;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.ApplicationListener;
-import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
 /**
  * Application event listener that send a message on Kafka topic on incoming ServiceUpdateEvent.
  * @author laurent
  */
 @Component
-@ConditionalOnProperty(value="async-api.enabled", havingValue="true", matchIfMissing=true)
+@ConditionalOnProperty(value = "async-api.enabled", havingValue = "true", matchIfMissing = true)
 public class ServiceChangeEventPublisher implements ApplicationListener<ServiceChangeEvent> {
 
-   /** A commons logger for diagnostic messages. */
-   private static Log log = LogFactory.getLog(ServiceChangeEventPublisher.class);
+   /** A simple logger for diagnostic messages. */
+   private static final Logger log = LoggerFactory.getLogger(ServiceChangeEventPublisher.class);
 
-   @Autowired
-   private ServiceRepository serviceRepository;
 
-   @Autowired
-   private MessageService messageService;
+   private final ServiceRepository serviceRepository;
+   private final MessageService messageService;
+   private final ServiceChangeEventChannel channel;
 
-   @Autowired
-   private KafkaTemplate<String, ServiceViewChangeEvent> kafkaTemplate;
+
+   /**
+    * Create a new ServiceChangeEventPublisher with required dependencies.
+    * @param serviceRepository the repository for Service objects
+    * @param messageService    the service for Message objects
+    * @param channel           the channel for ServiceChangeEvent
+    */
+   public ServiceChangeEventPublisher(ServiceRepository serviceRepository, MessageService messageService,
+         ServiceChangeEventChannel channel) {
+      this.serviceRepository = serviceRepository;
+      this.messageService = messageService;
+      this.channel = channel;
+   }
 
    @Override
    @Async
    public void onApplicationEvent(ServiceChangeEvent event) {
-      log.debug("Received a ServiceChangeEvent on " + event.getServiceId());
+      log.debug("Received a ServiceChangeEvent on {}", event.getServiceId());
 
       ServiceView serviceView = null;
       if (event.getChangeType() != ChangeType.DELETED) {
@@ -76,15 +83,15 @@ public class ServiceChangeEventPublisher implements ApplicationListener<ServiceC
             // Put messages into a map where key is operation name.
             Map<String, List<? extends Exchange>> messagesMap = new HashMap<>();
             for (Operation operation : service.getOperations()) {
-               if (service.getType() == ServiceType.EVENT) {
+               if (service.getType() == ServiceType.EVENT || service.getType() == ServiceType.GENERIC_EVENT) {
                   // If an event, we should explicitly retrieve event messages.
-                  List<UnidirectionalEvent> events = messageService.getEventByOperation(
-                        IdBuilder.buildOperationId(service, operation));
+                  List<UnidirectionalEvent> events = messageService
+                        .getEventByOperation(IdBuilder.buildOperationId(service, operation));
                   messagesMap.put(operation.getName(), events);
                } else {
                   // Otherwise we have traditional request / response pairs.
-                  List<RequestResponsePair> pairs = messageService.getRequestResponseByOperation(
-                        IdBuilder.buildOperationId(service, operation));
+                  List<RequestResponsePair> pairs = messageService
+                        .getRequestResponseByOperation(IdBuilder.buildOperationId(service, operation));
                   messagesMap.put(operation.getName(), pairs);
                }
             }
@@ -94,8 +101,14 @@ public class ServiceChangeEventPublisher implements ApplicationListener<ServiceC
       }
 
       // Build and send a ServiceViewChangeEvent that wraps ServiceView.
-      ServiceViewChangeEvent serviceViewChangeEvent = new ServiceViewChangeEvent(event.getServiceId(), serviceView, event.getChangeType(), System.currentTimeMillis());
-      kafkaTemplate.send("microcks-services-updates", event.getServiceId(), serviceViewChangeEvent);
-      log.debug("Processing of ServiceChangeEvent done !");
+      ServiceViewChangeEvent serviceViewChangeEvent = new ServiceViewChangeEvent(event.getServiceId(), serviceView,
+            event.getChangeType(), System.currentTimeMillis());
+      try {
+         channel.sendServiceViewChangeEvent(serviceViewChangeEvent);
+         log.debug("Processing of ServiceChangeEvent done !");
+      } catch (Exception e) {
+         // This is best effort sending, just log the exception.
+         log.error("Failed sending ServiceChangeEvent to correct channel", e);
+      }
    }
 }

@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async.consumer;
 
@@ -23,10 +20,10 @@ import org.apache.http.ssl.SSLContexts;
 import org.jboss.logging.Logger;
 
 import javax.net.ssl.SSLContext;
-import javax.websocket.ClientEndpointConfig;
-import javax.websocket.ContainerProvider;
-import javax.websocket.Session;
-import javax.websocket.WebSocketContainer;
+import jakarta.websocket.ClientEndpointConfig;
+import jakarta.websocket.ContainerProvider;
+import jakarta.websocket.Session;
+import jakarta.websocket.WebSocketContainer;
 import java.io.File;
 import java.io.IOException;
 import java.net.URI;
@@ -34,8 +31,8 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * An implementation of <code>MessageConsumptionTask</code> that consumes a WebSocket endpoint.
- * Endpoint URL should be specified using the following form: <code>ws://{wsHost[:port]}/{channel}[?option1=value1&amp;option2=value2]</code>.
+ * An implementation of <code>MessageConsumptionTask</code> that consumes a WebSocket endpoint. Endpoint URL should be
+ * specified using the following form: <code>ws://{wsHost[:port]}/{channel}[?option1=value1&amp;option2=value2]</code>.
  * Channel may be empty if connecting to the root context of the WebSocket server.
  * @author laurent
  */
@@ -82,8 +79,9 @@ public class WebSocketMessageConsumptionTask implements MessageConsumptionTask {
             // We neet to create a Truststore holding secret certificxate.
             trustStore = ConsumptionTaskCommons.installBrokerCertificate(specification);
 
-            SSLContext sslContext = SSLContexts.custom().loadTrustMaterial(trustStore,
-                  ConsumptionTaskCommons.TRUSTSTORE_PASSWORD.toCharArray(), null).build();
+            SSLContext sslContext = SSLContexts.custom()
+                  .loadTrustMaterial(trustStore, ConsumptionTaskCommons.TRUSTSTORE_PASSWORD.toCharArray(), null)
+                  .build();
 
             // Then configure the Client Endpoint using a property specific to Undertow impl (from Quarkus).
             ClientEndpointConfig config = ClientEndpointConfig.Builder.create().build();
@@ -101,7 +99,7 @@ public class WebSocketMessageConsumptionTask implements MessageConsumptionTask {
          throw e;
       }
 
-      Thread.sleep(specification.getTimeoutMS() - 1000L);
+      Thread.sleep(specification.getTimeoutMS());
       if (session != null) {
          try {
             session.close();
@@ -113,8 +111,8 @@ public class WebSocketMessageConsumptionTask implements MessageConsumptionTask {
    }
 
    /**
-    * Close the resources used by this task. Namely the WS client session and
-    * the optionally created truststore holding server client SSL credentials.
+    * Close the resources used by this task. Namely the WS client session and the optionally created truststore holding
+    * server client SSL credentials.
     * @throws IOException should not happen.
     */
    @Override

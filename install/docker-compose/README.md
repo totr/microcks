@@ -26,7 +26,7 @@ In your terminal issue the following commands:
    docker-compose up -d
    ```
 
-This will start the required containers and setup an simple environment for your usage.
+This will start the required containers and setup a simple environment for your usage.
 
 Open a new browser tab and point to the `http://localhost:8080` endpoint. This will redirect you to the [Keycloak](https://www.keycloak.org/) Single Sign On page for login. Use the following default credentials:
 

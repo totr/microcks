@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async.producer;
 
@@ -24,22 +21,17 @@ import io.github.microcks.minion.async.AsyncMockDefinition;
 import io.github.microcks.minion.async.AsyncMockRepository;
 import org.jboss.logging.Logger;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
-import javax.websocket.CloseReason;
-import javax.websocket.OnClose;
-import javax.websocket.OnError;
-import javax.websocket.OnMessage;
-import javax.websocket.OnOpen;
-import javax.websocket.Session;
-import javax.websocket.server.PathParam;
-import javax.websocket.server.ServerEndpoint;
+import jakarta.inject.Inject;
+import jakarta.websocket.CloseReason;
+import jakarta.websocket.OnClose;
+import jakarta.websocket.OnError;
+import jakarta.websocket.OnMessage;
+import jakarta.websocket.OnOpen;
+import jakarta.websocket.Session;
+import jakarta.websocket.server.PathParam;
 import java.util.List;
 import java.util.Set;
 
-@ApplicationScoped
-@RootWebSocketProducerManager
-@ServerEndpoint("/api/ws/{service}/{version}/")
 /**
  * WebSocket implementation of producer for async event messages.
  * @author laurent
@@ -92,7 +84,8 @@ public class WebSocketProducerManager {
          version = version.replace('+', ' ');
       }
 
-      Set<AsyncMockDefinition> definitions = asyncMockRepository.getMockDefinitionsByServiceAndVersion(service, version);
+      Set<AsyncMockDefinition> definitions = asyncMockRepository.getMockDefinitionsByServiceAndVersion(service,
+            version);
       if (definitions != null && !definitions.isEmpty()) {
          sessionRegistry.putSession(session);
       } else {
@@ -101,7 +94,8 @@ public class WebSocketProducerManager {
             session.close(new CloseReason(CloseReason.CloseCodes.CANNOT_ACCEPT,
                   "No mock available on " + session.getRequestURI()));
          } catch (Exception e) {
-            logger.infof("Caught an exception while rejecting a WebSocket opening on unmanaged '%'", session.getRequestURI().toString());
+            logger.infof("Caught an exception while rejecting a WebSocket opening on unmanaged '%'",
+                  session.getRequestURI().toString());
          }
       }
    }
@@ -112,7 +106,8 @@ public class WebSocketProducerManager {
    }
 
    @OnError
-   public void onError(Session session, @PathParam("service") String service, @PathParam("version") String version, Throwable throwable) {
+   public void onError(Session session, @PathParam("service") String service, @PathParam("version") String version,
+         Throwable throwable) {
       sessionRegistry.removeSession(session);
    }
 
@@ -124,23 +119,19 @@ public class WebSocketProducerManager {
 
    /**
     * Get the Websocket endpoint URI corresponding to a AsyncMockDefinition, sanitizing all parameters.
-    * @param definition The AsyncMockDefinition
+    * @param definition   The AsyncMockDefinition
     * @param eventMessage The message to get topic
     * @return The request URI corresponding to def and message
     */
    public String getRequestURI(AsyncMockDefinition definition, EventMessage eventMessage) {
-
       // Produce service name part of topic name.
       String serviceName = definition.getOwnerService().getName().replace(" ", "+");
+
       // Produce version name part of topic name.
       String versionName = definition.getOwnerService().getVersion().replace(" ", "+");
+
       // Produce operation name part of topic name.
-      String operationName = definition.getOperation().getName();
-      if (operationName.startsWith("SUBSCRIBE ") || operationName.startsWith("PUBLISH ")) {
-         operationName = operationName.substring(operationName.indexOf(" ") + 1);
-      }
-      // Replace the parts
-      operationName = ProducerManager.replacePartPlaceholders(eventMessage, operationName);
+      String operationName = ProducerManager.getDestinationOperationPart(definition.getOperation(), eventMessage);
 
       return "/api/ws/" + serviceName + "/" + versionName + "/" + operationName;
    }

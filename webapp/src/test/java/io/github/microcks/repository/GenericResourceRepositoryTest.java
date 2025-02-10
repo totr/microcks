@@ -1,47 +1,41 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.repository;
 
 import io.github.microcks.domain.GenericResource;
 import io.github.microcks.domain.Service;
 import org.bson.Document;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.annotation.DirtiesContext;
-import org.springframework.test.context.ContextConfiguration;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit.jupiter.SpringJUnitConfig;
 
 import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.jupiter.api.Assertions.*;
 
 /**
  * Test case for DynamicResourceRepository class.
  * @author laurent
  */
-@RunWith(SpringJUnit4ClassRunner.class)
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_EACH_TEST_METHOD)
-@ContextConfiguration(classes = RepositoryTestsConfiguration.class)
-@TestPropertySource(locations = {"classpath:/config/test.properties"})
-public class GenericResourceRepositoryTest {
+@SpringJUnitConfig(classes = RepositoryTestsConfiguration.class)
+@TestPropertySource(locations = { "classpath:/config/test.properties" })
+class GenericResourceRepositoryTest {
 
    @Autowired
    GenericResourceRepository repository;
@@ -50,7 +44,7 @@ public class GenericResourceRepositoryTest {
    ServiceRepository serviceRepository;
 
    @Test
-   public void testCreateGenericResource() {
+   void testCreateGenericResource() {
 
       // Create a minimal service.
       Service service = new Service();
@@ -89,7 +83,8 @@ public class GenericResourceRepositoryTest {
       repository.save(resource2);
 
       // Query by example using 1 field.
-      List<GenericResource> dynaResources = repository.findByServiceIdAndJSONQuery(service.getId(), "{ \"foo\": 1234 }");
+      List<GenericResource> dynaResources = repository.findByServiceIdAndJSONQuery(service.getId(),
+            "{ \"foo\": 1234 }");
       assertEquals(2, dynaResources.size());
       for (GenericResource r : dynaResources) {
          assertTrue(resource.getId().equals(r.getId()) || resource1.getId().equals(r.getId()));
@@ -101,7 +96,8 @@ public class GenericResourceRepositoryTest {
       assertEquals(resource2.getId(), dynaResources.get(0).getId());
 
       // Query by example using 2 fields.
-      dynaResources = repository.findByServiceIdAndJSONQuery(service.getId(), "{ \"foo\": 1234, \"bar\": \"other value\"}");
+      dynaResources = repository.findByServiceIdAndJSONQuery(service.getId(),
+            "{ \"foo\": 1234, \"bar\": \"other value\"}");
       assertEquals(1, dynaResources.size());
       assertEquals(resource1.getId(), dynaResources.get(0).getId());
 

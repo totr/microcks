@@ -1,24 +1,22 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.service;
 
 import io.github.microcks.domain.*;
+import io.github.microcks.event.TestCompletionEvent;
 import io.github.microcks.repository.EventMessageRepository;
 import io.github.microcks.repository.RequestRepository;
 import io.github.microcks.repository.ResponseRepository;
@@ -27,7 +25,7 @@ import io.github.microcks.util.IdBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContext;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -42,33 +40,45 @@ import java.util.concurrent.ThreadLocalRandom;
 public class TestService {
 
    /** A simple logger for diagnostic messages. */
-   private static Logger log = LoggerFactory.getLogger(TestService.class);
+   private static final Logger log = LoggerFactory.getLogger(TestService.class);
 
-   @Autowired
-   private RequestRepository requestRepository;
+   private final RequestRepository requestRepository;
+   private final ResponseRepository responseRepository;
+   private final EventMessageRepository eventMessageRepository;
+   private final TestResultRepository testResultRepository;
+   private final TestRunnerService testRunnerService;
+   private final ApplicationContext applicationContext;
 
-   @Autowired
-   private ResponseRepository responseRepository;
-
-   @Autowired
-   private EventMessageRepository eventMessageRepository;
-
-   @Autowired
-   private TestResultRepository testResultRepository;
-
-   @Autowired
-   private TestRunnerService testRunnerService;
-
+   /**
+    * Build a new TestService with the required dependencies.
+    * @param requestRepository      The repository to manage persistent requests
+    * @param responseRepository     The repository to manage persistent responses
+    * @param eventMessageRepository The repository to manage persistent eventMessages
+    * @param testResultRepository   The repository to manage persistent testResults
+    * @param testRunnerService      The service for running tests
+    * @param applicationContext     The Spring application context
+    */
+   public TestService(RequestRepository requestRepository, ResponseRepository responseRepository,
+         EventMessageRepository eventMessageRepository, TestResultRepository testResultRepository,
+         TestRunnerService testRunnerService, ApplicationContext applicationContext) {
+      this.requestRepository = requestRepository;
+      this.responseRepository = responseRepository;
+      this.eventMessageRepository = eventMessageRepository;
+      this.testResultRepository = testResultRepository;
+      this.testRunnerService = testRunnerService;
+      this.applicationContext = applicationContext;
+   }
 
    /**
     * Launch tests for a Service on dedicated endpoint URI.
-    * @param service Service to launch tests for
-    * @param testEndpoint Endpoint URI for running the tests
-    * @param runnerType The type of runner fo tests
+    * @param service       Service to launch tests for
+    * @param testEndpoint  Endpoint URI for running the tests
+    * @param runnerType    The type of runner fo tests
     * @param testOptionals Additional / optionals elements for test
     * @return An initialized TestResults (mostly empty for now since tests run asynchronously)
     */
-   public TestResult launchTests(Service service, String testEndpoint, TestRunnerType runnerType, TestOptionals testOptionals) {
+   public TestResult launchTests(Service service, String testEndpoint, TestRunnerType runnerType,
+         TestOptionals testOptionals) {
       TestResult testResult = new TestResult();
       testResult.setTestDate(new Date());
       testResult.setTestedEndpoint(testEndpoint);
@@ -77,22 +87,23 @@ public class TestService {
       testResult.setTimeout(testOptionals.getTimeout());
       testResult.setSecretRef(testOptionals.getSecretRef());
       testResult.setOperationsHeaders(testOptionals.getOperationsHeaders());
+
       // Initialize the TestCaseResults containers before saving it.
       initializeTestCaseResults(testResult, service, testOptionals);
       testResultRepository.save(testResult);
 
       // Launch test asynchronously before returning result.
       log.debug("Calling launchTestsInternal() marked as Async");
-      testRunnerService.launchTestsInternal(testResult, service, runnerType);
+      testRunnerService.launchTestsInternal(testResult, service, runnerType, testOptionals.getOAuth2Context());
       log.debug("Async launchTestsInternal() as now finished");
       return testResult;
    }
 
    /**
     * Endpoint for reporting test case results
-    * @param testResultId Unique identifier of test results we report results for
+    * @param testResultId  Unique identifier of test results we report results for
     * @param operationName Name of operation to report a result for
-    * @param testReturns List of test returns to add to this test case.
+    * @param testReturns   List of test returns to add to this test case.
     * @return A completed TestCaseResult object
     */
    public TestCaseResult reportTestCaseResult(String testResultId, String operationName, List<TestReturn> testReturns) {
@@ -131,7 +142,8 @@ public class TestService {
                updatedTestCaseResult = testCaseResult;
                // If results we now update the success flag and elapsed time of testCase?
                if (testReturns == null || testReturns.isEmpty()) {
-                  log.info("testReturns are null or empty, setting elapsedTime to -1 and success to false for {}", operationName);
+                  log.info("testReturns are null or empty, setting elapsedTime to -1 and success to false for {}",
+                        operationName);
                   testCaseResult.setElapsedTime(-1);
                   testCaseResult.setSuccess(false);
                } else {
@@ -148,6 +160,10 @@ public class TestService {
             updateTestResult(testResult);
             saved = true;
             log.debug("testResult {} has been updated !", testResult.getId());
+            // If test is completed, publish a completion event.
+            if (!testResult.isInProgress()) {
+               publishTestCompletionEvent(testResult);
+            }
          } catch (org.springframework.dao.OptimisticLockingFailureException olfe) {
             // Update counter and refresh domain object.
             log.warn("Caught an OptimisticLockingFailureException, trying refreshing for {} times", times);
@@ -164,12 +180,10 @@ public class TestService {
    private void initializeTestCaseResults(TestResult testResult, Service service, TestOptionals testOptionals) {
       for (Operation operation : service.getOperations()) {
          // Pick operation if no filter or present in filtered operations.
-         if (testOptionals.getFilteredOperations() == null
-               || testOptionals.getFilteredOperations().isEmpty()
+         if (testOptionals.getFilteredOperations() == null || testOptionals.getFilteredOperations().isEmpty()
                || testOptionals.getFilteredOperations().contains(operation.getName())) {
             TestCaseResult testCaseResult = new TestCaseResult();
             testCaseResult.setOperationName(operation.getName());
-            String testCaseId = IdBuilder.buildTestCaseId(testResult, operation);
             testResult.getTestCaseResults().add(testCaseResult);
          }
       }
@@ -214,11 +228,12 @@ public class TestService {
          eventMessageRepository.saveAll(eventMessages);
       }
    }
-   
+
    /**
     *
     */
-   private void updateTestCaseResultWithReturns(TestCaseResult testCaseResult, List<TestReturn> testReturns, boolean sumElapsedTimes, boolean findMaxElapsedTime) {
+   private void updateTestCaseResultWithReturns(TestCaseResult testCaseResult, List<TestReturn> testReturns,
+         boolean sumElapsedTimes, boolean findMaxElapsedTime) {
 
       // Prepare a bunch of flag we're going to complete.
       boolean successFlag = true;
@@ -234,7 +249,7 @@ public class TestService {
             }
          }
          TestStepResult testStepResult = testReturn.buildTestStepResult();
-         if (!testStepResult.isSuccess()){
+         if (!testStepResult.isSuccess()) {
             successFlag = false;
          }
 
@@ -244,7 +259,7 @@ public class TestService {
 
       // Update and save the completed TestCaseResult.
       // We cannot consider as success if we have no TestStepResults associated...
-      if (testCaseResult.getTestStepResults().size() > 0) {
+      if (!testCaseResult.getTestStepResults().isEmpty()) {
          testCaseResult.setSuccess(successFlag);
       }
       testCaseResult.setElapsedTime(caseElapsedTime);
@@ -262,10 +277,10 @@ public class TestService {
       long totalElapsedTime = 0;
       for (TestCaseResult testCaseResult : testResult.getTestCaseResults()) {
          totalElapsedTime += testCaseResult.getElapsedTime();
-         if (!testCaseResult.isSuccess()){
+         if (!testCaseResult.isSuccess()) {
             globalSuccessFlag = false;
          }
-         // -1 is default elapsed time for testcase so its mean that still in
+         // -1 is default elapsed time for testcase so it means that still in
          // progress because not updated yet.
          if (testCaseResult.getElapsedTime() == -1) {
             log.debug("testCaseResult.elapsedTime is -1, set globalProgressFlag to true");
@@ -278,10 +293,9 @@ public class TestService {
       testResult.setInProgress(globalProgressFlag);
       testResult.setElapsedTime(totalElapsedTime);
 
-      log.debug("Trying to update testResult {} with {} elapsedTime and success flag to {}",
-            testResult.getId(), testResult.getElapsedTime(), testResult.isSuccess());
+      log.debug("Trying to update testResult {} with {} elapsedTime and success flag to {}", testResult.getId(),
+            testResult.getElapsedTime(), testResult.isSuccess());
       testResultRepository.save(testResult);
-
    }
 
    private void waitSomeRandomMS(int min, int max) {
@@ -294,5 +308,12 @@ public class TestService {
             log.debug("waitSomeRandomMS semaphore was interrupted");
          }
       }
+   }
+
+   /** Publish a TestCompletionEvent towards asynchronous consumers. */
+   private void publishTestCompletionEvent(TestResult testResult) {
+      TestCompletionEvent event = new TestCompletionEvent(this, testResult);
+      applicationContext.publishEvent(event);
+      log.debug("Test completion event has been published");
    }
 }

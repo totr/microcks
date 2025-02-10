@@ -1,31 +1,29 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.event;
 
 import org.springframework.context.ApplicationEvent;
 
 import java.util.Date;
+
 /**
  * Simple bean representing an invocation event on a Mock.
  * @author laurent
  */
-public class MockInvocationEvent extends ApplicationEvent{
+public class MockInvocationEvent extends ApplicationEvent {
 
    /** */
    private final String serviceName;
@@ -40,15 +38,15 @@ public class MockInvocationEvent extends ApplicationEvent{
 
    /**
     * Create a new mock invocation event.
-    * @param source Source object for event
-    * @param serviceName Name of invoked service
-    * @param serviceVersion Version of invoked service
-    * @param mockResponse Mock response returned during invocation
+    * @param source              Source object for event
+    * @param serviceName         Name of invoked service
+    * @param serviceVersion      Version of invoked service
+    * @param mockResponse        Mock response returned during invocation
     * @param invocationTimestamp Timestamp of invocation
-    * @param duration Duration of invocation
+    * @param duration            Duration of invocation
     */
    public MockInvocationEvent(Object source, String serviceName, String serviceVersion, String mockResponse,
-         Date invocationTimestamp, long duration){
+         Date invocationTimestamp, long duration) {
       super(source);
       this.serviceName = serviceName;
       this.serviceVersion = serviceVersion;
@@ -56,7 +54,7 @@ public class MockInvocationEvent extends ApplicationEvent{
       this.invocationTimestamp = invocationTimestamp;
       this.duration = duration;
    }
-   
+
    public String getServiceName() {
       return serviceName;
    }
@@ -64,7 +62,7 @@ public class MockInvocationEvent extends ApplicationEvent{
    public String getServiceVersion() {
       return serviceVersion;
    }
-   
+
    public String getMockResponse() {
       return mockResponse;
    }
@@ -72,7 +70,7 @@ public class MockInvocationEvent extends ApplicationEvent{
    public Date getInvocationTimestamp() {
       return invocationTimestamp;
    }
-   
+
    public long getDuration() {
       return duration;
    }

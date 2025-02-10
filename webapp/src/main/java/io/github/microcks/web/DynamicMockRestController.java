@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.web;
 
@@ -25,52 +22,71 @@ import io.github.microcks.domain.ServiceType;
 import io.github.microcks.event.MockInvocationEvent;
 import io.github.microcks.repository.GenericResourceRepository;
 import io.github.microcks.repository.ServiceRepository;
+import io.github.microcks.util.SafeLogger;
+import io.github.microcks.util.el.EvaluableRequest;
+import io.github.microcks.util.el.TemplateEngine;
+import io.github.microcks.util.el.TemplateEngineFactory;
+
 import org.bson.Document;
 import org.bson.json.JsonParseException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationContext;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.util.UriUtils;
 
-import javax.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletRequest;
 import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 /**
+ * This is the controller for Dynamic mocks in Microcks.
  * @author laurent
  */
 @org.springframework.web.bind.annotation.RestController
 @RequestMapping("/dynarest")
 public class DynamicMockRestController {
 
-   /** A simple logger for diagnostic messages. */
-   private static Logger log = LoggerFactory.getLogger(DynamicMockRestController.class);
+   /** A safe logger for filtering user-controlled data in diagnostic messages. */
+   private static final SafeLogger log = SafeLogger.getLogger(DynamicMockRestController.class);
 
    public static final String ID_FIELD = "id";
 
-   @Autowired
-   ServiceRepository serviceRepository;
+   private final ServiceRepository serviceRepository;
+   private final GenericResourceRepository genericResourceRepository;
+   private final ApplicationContext applicationContext;
 
-   @Autowired
-   GenericResourceRepository genericResourceRepository;
+   @Value("${mocks.enable-invocation-stats}")
+   private final Boolean enableInvocationStats = null;
 
-   @Autowired
-   private ApplicationContext applicationContext;
+   /**
+    * Build a new DynamicMockRestController with required dependencies.
+    * @param serviceRepository         the repository for services
+    * @param genericResourceRepository the repository for generic resources
+    * @param applicationContext        the Spring application context
+    */
+   public DynamicMockRestController(ServiceRepository serviceRepository,
+         GenericResourceRepository genericResourceRepository, ApplicationContext applicationContext) {
+      this.serviceRepository = serviceRepository;
+      this.genericResourceRepository = genericResourceRepository;
+      this.applicationContext = applicationContext;
+   }
 
-   @RequestMapping(value = "/{service}/{version}/{resource}", method = RequestMethod.POST)
-   public ResponseEntity<String> createResource(
-         @PathVariable("service") String serviceName,
-         @PathVariable("version") String version,
-         @PathVariable("resource") String resource,
-         @RequestParam(value="delay", required=false) Long delay,
-         @RequestBody(required=true) String body,
-         HttpServletRequest request
-   ) {
+   @PostMapping(value = "/{service}/{version}/{resource}", produces = "application/json")
+   public ResponseEntity<String> createResource(@PathVariable("service") String serviceName,
+         @PathVariable("version") String version, @PathVariable("resource") String resource,
+         @RequestParam(value = "delay", required = false) Long delay, @RequestBody(required = true) String body,
+         HttpServletRequest request) {
       log.debug("Creating a new resource '{}' for service '{}-{}'", resource, serviceName, version);
       long startTime = System.currentTimeMillis();
 
@@ -104,56 +120,67 @@ public class DynamicMockRestController {
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
    }
 
-   @RequestMapping(value = "/{service}/{version}/{resource}", method = RequestMethod.GET)
-   public ResponseEntity<String> findResources(
-         @PathVariable("service") String serviceName,
-         @PathVariable("version") String version,
-         @PathVariable("resource") String resource,
+   @GetMapping(value = "/{service}/{version}/{resource}", produces = "application/json")
+   public ResponseEntity<String> findResources(@PathVariable("service") String serviceName,
+         @PathVariable("version") String version, @PathVariable("resource") String resource,
          @RequestParam(value = "page", required = false, defaultValue = "0") int page,
          @RequestParam(value = "size", required = false, defaultValue = "20") int size,
-         @RequestParam(value="delay", required=false) Long delay,
-         @RequestBody(required=false) String body
-   ) {
+         @RequestParam(value = "delay", required = false) Long delay, @RequestBody(required = false) String body,
+         HttpServletRequest request) {
       log.debug("Find resources '{}' for service '{}-{}'", resource, serviceName, version);
       long startTime = System.currentTimeMillis();
 
       serviceName = sanitizeServiceName(serviceName);
+
+      // Build the encoded URI fragment to retrieve simple resourcePath.
+      String requestURI = request.getRequestURI();
+      String serviceAndVersion = "/" + UriUtils.encodeFragment(serviceName, "UTF-8") + "/" + version;
+      String resourcePath = requestURI.substring(requestURI.indexOf(serviceAndVersion) + serviceAndVersion.length());
 
       MockContext mockContext = getMockContext(serviceName, version, "GET /" + resource);
       if (mockContext != null) {
 
          List<GenericResource> genericResources = null;
          if (body == null) {
-            genericResources = genericResourceRepository.findByServiceId(mockContext.service.getId(), PageRequest.of(page, size));
+            genericResources = genericResourceRepository.findByServiceId(mockContext.service.getId(),
+                  PageRequest.of(page, size));
          } else {
             genericResources = genericResourceRepository.findByServiceIdAndJSONQuery(mockContext.service.getId(), body);
          }
 
+         // Prepare templating support with evaluable request and engine.
+         EvaluableRequest evaluableRequest = MockControllerCommons.buildEvaluableRequest(body, resourcePath, request);
+         TemplateEngine engine = TemplateEngineFactory.getTemplateEngine();
+
          // Transform and collect resources.
-         List<String> resources = genericResources.stream()
-               .map(genericResource -> transformToResourceJSON(genericResource))
+         List<String> resources = genericResources.stream().map(genericResource -> MockControllerCommons
+               .renderResponseContent(evaluableRequest, engine, transformToResourceJSON(genericResource)))
                .collect(Collectors.toList());
 
          // Wait if specified before returning.
          waitForDelay(startTime, delay, mockContext);
+         MockControllerCommons.waitForDelay(startTime, delay);
+
          return new ResponseEntity<>(formatToJSONArray(resources), HttpStatus.OK);
       }
       // Return a 400 code : bad request.
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
    }
 
-   @RequestMapping(value = "/{service}/{version}/{resource}/{resourceId}", method = RequestMethod.GET)
-   public ResponseEntity<String> getResource(
-         @PathVariable("service") String serviceName,
-         @PathVariable("version") String version,
-         @PathVariable("resource") String resource,
-         @PathVariable("resourceId") String resourceId,
-         @RequestParam(value="delay", required=false) Long delay
-   ) {
+   @GetMapping(value = "/{service}/{version}/{resource}/{resourceId}", produces = "application/json")
+   public ResponseEntity<String> getResource(@PathVariable("service") String serviceName,
+         @PathVariable("version") String version, @PathVariable("resource") String resource,
+         @PathVariable("resourceId") String resourceId, @RequestParam(value = "delay", required = false) Long delay,
+         HttpServletRequest request) {
       log.debug("Get resource '{}:{}' for service '{}-{}'", resource, resourceId, serviceName, version);
       long startTime = System.currentTimeMillis();
 
       serviceName = sanitizeServiceName(serviceName);
+
+      // Build the encoded URI fragment to retrieve simple resourcePath.
+      String requestURI = request.getRequestURI();
+      String serviceAndVersion = "/" + UriUtils.encodeFragment(serviceName, "UTF-8") + "/" + version;
+      String resourcePath = requestURI.substring(requestURI.indexOf(serviceAndVersion) + serviceAndVersion.length());
 
       MockContext mockContext = getMockContext(serviceName, version, "GET /" + resource + "/:id");
       if (mockContext != null) {
@@ -164,8 +191,14 @@ public class DynamicMockRestController {
          waitForDelay(startTime, delay, mockContext);
 
          if (genericResource != null) {
+            // Prepare templating support with evaluable request and engine.
+            EvaluableRequest evaluableRequest = MockControllerCommons.buildEvaluableRequest(null, resourcePath,
+                  request);
+            TemplateEngine engine = TemplateEngineFactory.getTemplateEngine();
+
             // Return the resource as well as a 200 code.
-            return new ResponseEntity<>(transformToResourceJSON(genericResource), HttpStatus.OK);
+            return new ResponseEntity<>(MockControllerCommons.renderResponseContent(evaluableRequest, engine,
+                  transformToResourceJSON(genericResource)), HttpStatus.OK);
          } else {
             // Return a 404 code : not found.
             return new ResponseEntity<>(HttpStatus.NOT_FOUND);
@@ -176,16 +209,11 @@ public class DynamicMockRestController {
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
    }
 
-   @RequestMapping(value = "/{service}/{version}/{resource}/{resourceId}", method = RequestMethod.PUT)
-   public ResponseEntity<String> updateResource(
-         @PathVariable("service") String serviceName,
-         @PathVariable("version") String version,
-         @PathVariable("resource") String resource,
-         @PathVariable("resourceId") String resourceId,
-         @RequestParam(value="delay", required=false) Long delay,
-         @RequestBody(required=true) String body,
-         HttpServletRequest request
-   ) {
+   @PutMapping(value = "/{service}/{version}/{resource}/{resourceId}", produces = "application/json")
+   public ResponseEntity<String> updateResource(@PathVariable("service") String serviceName,
+         @PathVariable("version") String version, @PathVariable("resource") String resource,
+         @PathVariable("resourceId") String resourceId, @RequestParam(value = "delay", required = false) Long delay,
+         @RequestBody(required = true) String body, HttpServletRequest request) {
       log.debug("Update resource '{}:{}' for service '{}-{}'", resource, resourceId, serviceName, version);
       long startTime = System.currentTimeMillis();
 
@@ -230,14 +258,10 @@ public class DynamicMockRestController {
       return new ResponseEntity<>(HttpStatus.BAD_REQUEST);
    }
 
-   @RequestMapping(value = "/{service}/{version}/{resource}/{resourceId}", method = RequestMethod.DELETE)
-   public ResponseEntity<String> deleteResource(
-         @PathVariable("service") String serviceName,
-         @PathVariable("version") String version,
-         @PathVariable("resource") String resource,
-         @PathVariable("resourceId") String resourceId,
-         @RequestParam(value="delay", required=false) Long delay
-   ) {
+   @DeleteMapping(value = "/{service}/{version}/{resource}/{resourceId}")
+   public ResponseEntity<String> deleteResource(@PathVariable("service") String serviceName,
+         @PathVariable("version") String version, @PathVariable("resource") String resource,
+         @PathVariable("resourceId") String resourceId, @RequestParam(value = "delay", required = false) Long delay) {
       log.debug("Update resource '{}:{}' for service '{}-{}'", resource, resourceId, serviceName, version);
       long startTime = System.currentTimeMillis();
 
@@ -288,7 +312,7 @@ public class DynamicMockRestController {
 
    private String formatToJSONArray(List<String> resources) {
       StringBuilder builder = new StringBuilder("[");
-      for (int i=0; i<resources.size(); i++) {
+      for (int i = 0; i < resources.size(); i++) {
          builder.append(resources.get(i));
          if (i < resources.size() - 1) {
             builder.append(", ");
@@ -303,29 +327,16 @@ public class DynamicMockRestController {
          delay = mockContext.operation.getDefaultDelay();
       }
 
-      if (delay != null && delay > -1) {
-         log.debug("Mock delay is turned on, waiting if necessary...");
-         long duration = System.currentTimeMillis() - since;
-         if (duration < delay) {
-            Object semaphore = new Object();
-            synchronized (semaphore) {
-               try {
-                  semaphore.wait(delay - duration);
-               } catch (Exception e) {
-                  log.debug("Delay semaphore was interrupted");
-               }
-            }
-         }
-         log.debug("Delay now expired, releasing response !");
-      }
+      MockControllerCommons.waitForDelay(since, delay);
 
-      // Publish an invocation event before returning.
-      MockInvocationEvent event = new MockInvocationEvent(this, mockContext.service.getName(),
-            mockContext.service.getVersion(),
-            "DynamicMockRestController",
-            new Date(since), since - System.currentTimeMillis());
-      applicationContext.publishEvent(event);
-      log.debug("Mock invocation event has been published");
+      // Publish an invocation event before returning if enabled.
+      if (Boolean.TRUE.equals(enableInvocationStats)) {
+         MockInvocationEvent event = new MockInvocationEvent(this, mockContext.service.getName(),
+               mockContext.service.getVersion(), "DynamicMockRestController", new Date(since),
+               since - System.currentTimeMillis());
+         applicationContext.publishEvent(event);
+         log.debug("Mock invocation event has been published");
+      }
    }
 
    private class MockContext {

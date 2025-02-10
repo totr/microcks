@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.util.dispatcher;
 
@@ -27,10 +24,11 @@ import java.io.StringReader;
 import java.util.regex.Pattern;
 
 /**
- * This utility class evaluates JSON against one or more evaluation specifications.
- * Specification may be represented that way and use to find a suitable response for an incoming
- * JSON request: <br>
- * <pre><code> {
+ * This utility class evaluates JSON against one or more evaluation specifications. Specification may be represented
+ * that way and use to find a suitable response for an incoming JSON request: <br>
+ * 
+ * <pre>
+ * <code> {
  *   "exp": "/country",							# JSONPointer expression
  *   "operator": "equals",
  *   "cases": {
@@ -38,7 +36,9 @@ import java.util.regex.Pattern;
  *     "Germany": "Forbidden Country Response", # Name of a Response for Germany
  *     "default": "Why not Response"			   # Name of default Response
  *   }
- * }</code></pre>
+ * }</code>
+ * </pre>
+ * 
  * @author laurent
  */
 public class JsonExpressionEvaluator {
@@ -47,14 +47,15 @@ public class JsonExpressionEvaluator {
    private static Logger log = LoggerFactory.getLogger(JsonExpressionEvaluator.class);
 
    /**
-    * Evaluate a Json payload regarding a specification. Basically, it checks if payload
-    * conforms to the given expression and then fond the suitable cases from within specification.
-    * @param jsonText The Json payload to evaluate
+    * Evaluate a Json payload regarding a specification. Basically, it checks if payload conforms to the given
+    * expression and then fond the suitable cases from within specification.
+    * @param jsonText      The Json payload to evaluate
     * @param specification The evaluation specification (JSONPointer expression + operator + cases)
     * @return The result of evaluation is whether one of the cases, whether
     * @throws JsonMappingException if incoming Json payload is malformed or invalid
     */
-   public static String evaluate(String jsonText, JsonEvaluationSpecification specification) throws JsonMappingException {
+   public static String evaluate(String jsonText, JsonEvaluationSpecification specification)
+         throws JsonMappingException {
       // Parse json text ang get root node.
       JsonNode rootNode;
       try {
@@ -106,8 +107,8 @@ public class JsonExpressionEvaluator {
             break;
 
          case presence:
-            // Consider presence evaluation.
-            if (caseKey != null && caseKey.length() > 0) {
+            // Consider presence evaluation of evaluatedNode directly.
+            if (evaluatedNode != null && evaluatedNode.toString().length() > 0) {
                if (specification.getCases().containsKey("found")) {
                   return specification.getCases().get("found");
                }

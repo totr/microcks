@@ -45,7 +45,7 @@ dd, dt {
 }
 
 span.card-pf-footer-text {
-  font-size: 0.7em !important;
+  font-size: 1em !important;
   vertical-align: text-top;
 }
 
@@ -69,12 +69,18 @@ span.card-pf-footer-text {
 .grpc-icon-sm {
   border: 3px solid #379c9c !important;
 }
+.graph-icon-sm {
+  border: 3px solid #e10098 !important;
+}
 .generic-icon-sm {
   border: 3px solid #9c27b0 !important;
 }
 
 .label-grpc {
   background-color: #379c9c;
+}
+.label-graph {
+  background-color: #e10098;
 }
 .label-gene {
   background-color: #9c27b0;
@@ -105,10 +111,13 @@ span.card-pf-footer-text {
   margin-left: 5px;
 }
 
-.bar {
+.test-box-container {
   display: inline-block;
+}
+.bar {
   border: 1px;
   border-bottom: 1px solid #CCC;
+  margin: 5px;
 }
 .bar-success {
   background: #7BB33D;
@@ -121,6 +130,42 @@ span.card-pf-footer-text {
 }
 .bar-failure:hover {
   background: #d41e24;
+}
+
+#dayInvocationsBarChart {
+  padding-left: 20px;
+}
+#dayInvocationsBarChart >* .domain {
+  display: none;
+}
+#dayInvocationsBarChart >* .axis line {
+  stroke-width: 1px;
+  stroke: #eee;
+  shape-rendering: crispedges;
+}
+#dayInvocationsBarChart >* .axis text {
+  fill: #888;
+}
+#hourInvocationsBarChart {
+  padding-right: 20px;
+}
+#hourInvocationsBarChart >* .domain {
+  display: none;
+}
+#hourInvocationsBarChart >* .axis line {
+  stroke-width: 1px;
+  stroke: #eee;
+  shape-rendering: crispedges;
+}
+#hourInvocationsBarChart >* .axis text {
+  fill: #888;
+}
+.invocations-bar > rect {
+  fill: #0088ce;
+  fill-opacity: 0.7;
+}
+.invocations-bar > rect:hover {
+  fill-opacity: 1;
 }
 
 .nav-tabs>li.second-tab:first-child>a {
@@ -164,4 +209,12 @@ span.card-pf-footer-text {
 ul.unstyled {
   list-style-type: none;
   padding-inline-start: 0px;
+}
+
+.rect-defocused {
+  opacity: 0.3 !important;
+}
+
+.tooltip-break {
+  word-break: break-word;
 }

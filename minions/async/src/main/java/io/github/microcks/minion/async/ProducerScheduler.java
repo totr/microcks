@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async;
 
@@ -36,32 +33,38 @@ import org.quartz.Trigger;
 import org.quartz.TriggerBuilder;
 import org.quartz.TriggerKey;
 
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
+import jakarta.enterprise.context.ApplicationScoped;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@ApplicationScoped
 /**
  * Bean responsible for Async mock messages producers scheduling.
  * @author laurent
  */
+@ApplicationScoped
 public class ProducerScheduler {
 
    /** Get a JBoss logging logger. */
    private final Logger logger = Logger.getLogger(getClass());
 
-   private List<TriggerKey> triggerKeys = new ArrayList<>();
+   private final List<TriggerKey> triggerKeys = new ArrayList<>();
 
-   @Inject
-   Scheduler quartz;
+   final Scheduler quartz;
+   final AsyncMockRepository mockRepository;
 
-   @Inject
-   AsyncMockRepository mockRepository;
-
-   @ConfigProperty(name= "minion.restricted-frequencies")
+   @ConfigProperty(name = "minion.restricted-frequencies")
    Long[] restrictedFrequencies;
+
+   /**
+    * Create a new ProducerScheduler with required dependencies.
+    * @param quartz         The Quartz scheduler
+    * @param mockRepository The repository for mock definitions
+    */
+   public ProducerScheduler(Scheduler quartz, AsyncMockRepository mockRepository) {
+      this.quartz = quartz;
+      this.mockRepository = mockRepository;
+   }
 
 
    /** Perform a dummy action. This one is actually necessary to activate the injection of Quartz scheduler. */
@@ -101,19 +104,12 @@ public class ProducerScheduler {
       logger.info("Scheduling a new Producer Job at frequency " + frequency);
 
       // Create a job detail which is holding its frequency as a param.
-      JobDetail jobDetail = JobBuilder.newJob(AsyncMockProducerJob.class)
-            .usingJobData("frequency", frequency).build();
+      JobDetail jobDetail = JobBuilder.newJob(AsyncMockProducerJob.class).usingJobData("frequency", frequency).build();
 
       // Create a trigger for this job, executing each 'frequency' seconds.
-      Trigger trigger = TriggerBuilder.newTrigger()
-            .forJob(jobDetail)
-            .withIdentity(String.valueOf(frequency))
-            .startNow()
+      Trigger trigger = TriggerBuilder.newTrigger().forJob(jobDetail).withIdentity(String.valueOf(frequency)).startNow()
             .withSchedule(
-                  SimpleScheduleBuilder.simpleSchedule()
-                        .withIntervalInSeconds((int)(long)frequency)
-                        .repeatForever()
-            )
+                  SimpleScheduleBuilder.simpleSchedule().withIntervalInSeconds((int) (long) frequency).repeatForever())
             .build();
 
       try {

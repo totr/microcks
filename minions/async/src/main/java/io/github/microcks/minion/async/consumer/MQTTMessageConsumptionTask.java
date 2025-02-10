@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async.consumer;
 
@@ -27,6 +24,7 @@ import org.jboss.logging.Logger;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -34,8 +32,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * An implementation of <code>MessageConsumptionTask</code> that consumes a topic on an MQTT 3.1 Server.
- * Endpoint URL should be specified using the following form: <code>mqtt://{brokerhost[:port]}/{topic}[?option1=value1&amp;option2=value2]</code>
+ * An implementation of <code>MessageConsumptionTask</code> that consumes a topic on an MQTT 3.1 Server. Endpoint URL
+ * should be specified using the following form:
+ * <code>mqtt://{brokerhost[:port]}/{topic}[?option1=value1&amp;option2=value2]</code>
  * @author laurent
  */
 public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
@@ -50,7 +49,7 @@ public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
 
    private File trustStore;
 
-   private AsyncTestSpecification specification;
+   private final AsyncTestSpecification specification;
 
    private IMqttClient subscriber;
 
@@ -92,7 +91,7 @@ public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
          messages.add(message);
       });
 
-      Thread.sleep(specification.getTimeoutMS() - 1000L);
+      Thread.sleep(specification.getTimeoutMS());
 
       // Disconnect the subscriber before returning results.
       subscriber.disconnect();
@@ -100,8 +99,8 @@ public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
    }
 
    /**
-    * Close the resources used by this task. Namely the MQTT subscriber and
-    * the optionally created truststore holding server client SSL credentials.
+    * Close the resources used by this task. Namely the MQTT subscriber and the optionally created truststore holding
+    * server client SSL credentials.
     * @throws IOException should not happen.
     */
    @Override
@@ -114,7 +113,7 @@ public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
          }
       }
       if (trustStore != null && trustStore.exists()) {
-         trustStore.delete();
+         Files.delete(trustStore.toPath());
       }
    }
 
@@ -136,8 +135,7 @@ public class MQTTMessageConsumptionTask implements MessageConsumptionTask {
       String protocolPragma = "tcp://";
 
       if (specification.getSecret() != null) {
-         if (specification.getSecret().getUsername() != null
-               && specification.getSecret().getPassword() != null) {
+         if (specification.getSecret().getUsername() != null && specification.getSecret().getPassword() != null) {
             logger.debug("Adding username/password authentication from secret " + specification.getSecret().getName());
             connectOptions.setUserName(specification.getSecret().getUsername());
             connectOptions.setPassword(specification.getSecret().getPassword().toCharArray());

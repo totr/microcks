@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { Component, OnInit, Renderer2 } from '@angular/core';
 
@@ -28,7 +25,7 @@ const sanitizeProviderValue = value => {
   if (!value) {
     return value;
   }
-  var providerTail = null;
+  let providerTail = null;
   IGNORED_PROVIDER_TAILS.forEach((tail, index, array) => {
     if (value.endsWith(tail)) {
       providerTail = tail;
@@ -41,7 +38,7 @@ const sanitizeProviderValue = value => {
 };
 
 @Component({
-  selector: 'hub-page',
+  selector: 'app-hub-page',
   templateUrl: './hub.page.html',
   styleUrls: ['./hub.page.css']
 })
@@ -50,7 +47,7 @@ export class HubPageComponent implements OnInit {
   categories: any = [];
   providers: any = [];
   packages: APIPackage[];
-  maxProviders: number = 6;
+  maxProviders = 6;
 
   filterString: string;
   selectedCategory: string;
@@ -72,7 +69,7 @@ export class HubPageComponent implements OnInit {
       this.initializeAvailableProviders();
     });
   }
-  
+
   selectCategory(category: string): void {
     this.selectedCategory = category;
     this.applyFilters();
@@ -92,7 +89,7 @@ export class HubPageComponent implements OnInit {
 
   applyFilters(): void {
     this.filteredPackages = this.packages.filter((item, index, array) => {
-      return this.challengeFilterString(item) && this.challengeSelectedCategory(item) 
+      return this.challengeFilterString(item) && this.challengeSelectedCategory(item)
           && this.challengeSelectedProviders(item);
     });
   }
@@ -133,7 +130,7 @@ export class HubPageComponent implements OnInit {
     }).length;
   }
   countFilteredAPIs(): number {
-    return this.filteredPackages.reduce((total, item) => {return total + item.apis.length}, 0);
+    return this.filteredPackages.reduce((total, item) => total + item.apis.length, 0);
   }
 
   showAllProviders(): void {
@@ -141,10 +138,10 @@ export class HubPageComponent implements OnInit {
   }
 
   private initializeAvailableCategories(): void {
-    var unsortedCategories = {};
+    const unsortedCategories = {};
     this.packages.forEach((apiPackage, index, packs) => {
       if (apiPackage.categories.length > 0) {
-        apiPackage.categories.forEach((category, index, cats) => {
+        apiPackage.categories.forEach((category, packageIndex, cats) => {
           if (!unsortedCategories[category]) {
             unsortedCategories[category] = [];
           }
@@ -169,9 +166,9 @@ export class HubPageComponent implements OnInit {
   }
 
   private initializeAvailableProviders(): void {
-    var unsortedProviders = {};
+    const unsortedProviders = {};
     this.packages.forEach((apiPackage, index, packs) => {
-      var provider = sanitizeProviderValue(apiPackage.provider);
+      const provider = sanitizeProviderValue(apiPackage.provider);
       if (!unsortedProviders[provider]) {
         unsortedProviders[provider] = [];
       }

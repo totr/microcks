@@ -1,25 +1,20 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.util.asyncapi;
 
-import io.github.microcks.domain.Binding;
-import io.github.microcks.domain.BindingType;
 import io.github.microcks.domain.EventMessage;
 import io.github.microcks.domain.Exchange;
 import io.github.microcks.domain.Header;
@@ -30,6 +25,7 @@ import io.github.microcks.domain.ResourceType;
 import io.github.microcks.domain.Service;
 import io.github.microcks.domain.ServiceType;
 import io.github.microcks.domain.UnidirectionalEvent;
+import io.github.microcks.util.AbstractJsonRepositoryImporter;
 import io.github.microcks.util.DispatchCriteriaHelper;
 import io.github.microcks.util.DispatchStyles;
 import io.github.microcks.util.IdBuilder;
@@ -41,94 +37,46 @@ import io.github.microcks.util.metadata.MetadataExtensions;
 import io.github.microcks.util.metadata.MetadataExtractor;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.JsonNodeType;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import java.util.stream.Collectors;
+
+import static io.github.microcks.util.asyncapi.AsyncAPICommons.*;
 
 /**
- * An implementation of MockRepositoryImporter that deals with AsyncAPI v2.0.x specification
- * file ; whether encoding into JSON or YAML documents.
+ * An implementation of MockRepositoryImporter that deals with AsyncAPI v2.0.x specification file ; whether encoding
+ * into JSON or YAML documents.
  * @author laurent
  */
-public class AsyncAPIImporter implements MockRepositoryImporter {
+public class AsyncAPIImporter extends AbstractJsonRepositoryImporter implements MockRepositoryImporter {
 
    /** A simple logger for diagnostic messages. */
-   private static Logger log = LoggerFactory.getLogger(AsyncAPIImporter.class);
+   private static final Logger log = LoggerFactory.getLogger(AsyncAPIImporter.class);
 
-   private static final String[] MULTI_STRUCTURES = {
-         "allOf", "anyOf", "oneOf"
-   };
-
-   private boolean isYaml = true;
-   private JsonNode spec;
-   private String specContent;
-   private ReferenceResolver referenceResolver;
-
+   private static final String[] MULTI_STRUCTURES = { "allOf", "anyOf", "oneOf" };
    private static final List<String> VALID_VERBS = Arrays.asList("subscribe", "publish");
 
    /**
     * Build a new importer.
     * @param specificationFilePath The path to local AsyncAPI spec file
-    * @param referenceResolver An optional resolver for references present into the AsyncAPI file
+    * @param referenceResolver     An optional resolver for references present into the AsyncAPI file
     * @throws IOException if project file cannot be found or read.
     */
    public AsyncAPIImporter(String specificationFilePath, ReferenceResolver referenceResolver) throws IOException {
-      this.referenceResolver = referenceResolver;
-      try {
-         // Analyse first lines of file content to guess repository type.
-         String line = null;
-         BufferedReader reader = Files.newBufferedReader(new File(specificationFilePath).toPath(), Charset.forName("UTF-8"));
-         while ((line = reader.readLine()) != null) {
-            line = line.trim();
-            // Check is we start with json object or array definition.
-            if (line.startsWith("{") || line.startsWith("[")) {
-               isYaml = false;
-               break;
-            }
-            else if (line.startsWith("---") || line.startsWith("-") || line.startsWith("asyncapi: ")) {
-               isYaml = true;
-               break;
-            }
-         }
-         reader.close();
-
-         // Read spec bytes.
-         byte[] bytes = Files.readAllBytes(Paths.get(specificationFilePath));
-         specContent = new String(bytes, Charset.forName("UTF-8"));
-         // Convert them to Node using Jackson object mapper.
-         ObjectMapper mapper = null;
-         if (isYaml) {
-            mapper = new ObjectMapper(new YAMLFactory());
-            // Jackson YAML parser can't deal with any quotes around "$ref" and double quotes around the path.
-            specContent = specContent.replaceAll("[\\\"']?\\$ref[\\\"']?:\\s*[\\\"'](#.*)[\\\"']", "\\$ref: '$1'")
-                  .replaceAll("[\\\"']?pattern[\\\"']?:\\s*[\\\"'](.*)[\\\"']", "pattern: $1");
-         } else {
-            mapper = new ObjectMapper();
-         }
-         spec = mapper.readTree(specContent.getBytes(Charset.forName("UTF-8")));
-      } catch (Exception e) {
-         log.error("Exception while parsing AsyncAPI specification file " + specificationFilePath, e);
-         throw new IOException("AsyncAPI spec file parsing error");
-      }
+      super(specificationFilePath, referenceResolver);
    }
 
    @Override
@@ -138,14 +86,15 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       // Build a new service.
       Service service = new Service();
 
-      service.setName(spec.path("info").path("title").asText());
-      service.setVersion(spec.path("info").path("version").asText());
+      service.setName(rootSpecification.path("info").path("title").asText());
+      service.setVersion(rootSpecification.path("info").path("version").asText());
       service.setType(ServiceType.EVENT);
 
       // Complete metadata if specified via extension.
-      if (spec.path("info").has(MetadataExtensions.MICROCKS_EXTENSION)) {
+      if (rootSpecification.path("info").has(MetadataExtensions.MICROCKS_EXTENSION)) {
          Metadata metadata = new Metadata();
-         MetadataExtractor.completeMetadata(metadata, spec.path("info").path(MetadataExtensions.MICROCKS_EXTENSION));
+         MetadataExtractor.completeMetadata(metadata,
+               rootSpecification.path("info").path(MetadataExtensions.MICROCKS_EXTENSION));
          service.setMetadata(metadata);
       }
 
@@ -159,20 +108,20 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
    @Override
    public List<Resource> getResourceDefinitions(Service service) {
       List<Resource> results = new ArrayList<>();
+      Map<String, Resource> resolvedExternalRefResources = new HashMap<>();
 
       // Build a suitable name.
       String name = service.getName() + "-" + service.getVersion();
-      if (isYaml) {
+      if (Boolean.TRUE.equals(isYaml)) {
          name += ".yaml";
       } else {
          name += ".json";
       }
 
-      // Build a brand new resource just with spec content.
+      // Build a brand-new resource just with spec content.
       Resource resource = new Resource();
       resource.setName(name);
       resource.setType(ResourceType.ASYNC_API_SPEC);
-      resource.setContent(specContent);
       results.add(resource);
 
       // Browser operations messages and message traits to see if we have
@@ -180,83 +129,114 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       if (referenceResolver != null) {
          for (Operation operation : service.getOperations()) {
             String[] operationElements = operation.getName().split(" ");
-            String messageNamePtr = "/channels/" + operationElements[1].replaceAll("/", "~1");
+            String messageNamePtr = "/channels/" + operationElements[1].replace("/", "~1");
             messageNamePtr += "/" + operationElements[0].toLowerCase() + "/message";
 
-            JsonNode messageNode = spec.at(messageNamePtr);
+            JsonNode messageNode = rootSpecification.at(messageNamePtr);
             if (messageNode != null) {
                // If it's a $ref, then navigate to it.
                messageNode = followRefIfAny(messageNode);
 
                // Extract payload schema here.
-               if (messageNode.has("payload")) {
-                  JsonNode payloadNode = messageNode.path("payload");
+               if (messageNode.has(EXAMPLE_PAYLOAD_NODE)) {
+                  JsonNode payloadNode = messageNode.path(EXAMPLE_PAYLOAD_NODE);
 
                   // Check we have a reference that is not a local one.
-                  if (payloadNode.has("$ref")
-                        && !payloadNode.path("$ref").asText().startsWith("#")) {
-                     String ref = payloadNode.path("$ref").asText();
+                  if (payloadNode.has("$ref")) {
 
-                     // Remove trailing anchor marker.
-                     if (ref.contains("#")) {
-                        ref = ref.substring(0, ref.indexOf("#"));
-                     }
+                     Set<String> references = new HashSet<>();
+                     findAllExternalRefsAsyncAPI(payloadNode, references);
 
-                     try {
-                        // Extract content using resolver.
-                        String content = referenceResolver.getHttpReferenceContent(ref, "UTF-8");
+                     for (String ref : references) {
+                        // We may have already resolved it if referenced more than once.
+                        Resource schemaResource = resolvedExternalRefResources.get(ref);
+                        if (schemaResource == null) {
+                           try {
+                              // Remove trailing anchor marker (we may have this in Avro schema to point exact
+                              // Resource)
+                              if (ref.contains("#")) {
+                                 ref = ref.substring(0, ref.indexOf("#"));
+                              }
 
-                        // Build a new resource from content. Use the escaped operation path.
-                        Resource schemaResource = new Resource();
-                        schemaResource.setName(IdBuilder.buildResourceFullName(service, operation));
-                        schemaResource.setPath(ref);
-                        schemaResource.setContent(content);
+                              // Extract content using resolver.
+                              String content = referenceResolver.getReferenceContent(ref, StandardCharsets.UTF_8);
+                              String resourceName = ref.substring(ref.lastIndexOf('/') + 1);
 
-                        // We have to look at schema format to know the type.
-                        // Default value is set at first.
-                        String schemaFormat = "application/vnd.aai.asyncapi";
-                        if (messageNode.has("schemaFormat")) {
-                           schemaFormat = messageNode.path("schemaFormat").asText();
+                              // Build a new resource from content. Use the escaped operation path.
+                              schemaResource = new Resource();
+                              schemaResource.setName(IdBuilder.buildResourceFullName(service, resourceName));
+                              schemaResource.setPath(ref);
+                              schemaResource.setContent(content);
+
+                              // We have to look at schema format to know the type.
+                              if (messageNode.has("schemaFormat")) {
+                                 String schemaFormat = messageNode.path("schemaFormat").asText();
+
+                                 if (schemaFormat.startsWith("application/vnd.aai.asyncapi")) {
+                                    schemaResource.setType(ResourceType.ASYNC_API_SCHEMA);
+                                 } else if (schemaFormat.startsWith("application/vnd.oai.openapi")) {
+                                    schemaResource.setType(ResourceType.OPEN_API_SCHEMA);
+                                 } else if (schemaFormat.startsWith("application/schema+json")
+                                       || schemaFormat.startsWith("application/schema+yaml")) {
+                                    schemaResource.setType(ResourceType.JSON_SCHEMA);
+                                 } else if (schemaFormat.startsWith("application/vnd.apache.avro")) {
+                                    schemaResource.setType(ResourceType.AVRO_SCHEMA);
+                                 }
+                              } else {
+                                 // We should probably go deeper here and inspect the content of resolved
+                                 // resource
+                                 // to actually get the real schema type...
+                                 schemaResource.setType(ResourceType.JSON_SCHEMA);
+                              }
+
+                              if (!ref.startsWith("http")) {
+                                 // If a relative resource, replace with new name.
+                                 rootSpecificationContent = rootSpecificationContent.replace(ref,
+                                       URLEncoder.encode(schemaResource.getName(), "UTF-8"));
+                              }
+
+                              results.add(schemaResource);
+                           } catch (IOException ioe) {
+                              log.error("IOException while trying to resolve reference " + ref, ioe);
+                              log.info("Ignoring the reference {} cause it could not be resolved", ref);
+                           }
+                           // Mark it as resolved.
+                           resolvedExternalRefResources.put(ref, schemaResource);
                         }
 
-                        if (schemaFormat.startsWith("application/vnd.aai.asyncapi")) {
-                           schemaResource.setType(ResourceType.ASYNC_API_SCHEMA);
-                        } else if (schemaFormat.startsWith("application/vnd.oai.openapi")) {
-                           schemaResource.setType(ResourceType.OPEN_API_SCHEMA);
-                        } else if (schemaFormat.startsWith("application/schema+json")
-                              || schemaFormat.startsWith("application/schema+yaml")) {
-                           schemaResource.setType(ResourceType.JSON_SCHEMA);
-                        } else if (schemaFormat.startsWith("application/vnd.apache.avro")) {
-                           schemaResource.setType(ResourceType.AVRO_SCHEMA);
+                        if (schemaResource != null) {
+                           schemaResource.addOperation(operation.getName());
+                        } else {
+                           log.warn("Cannot add operation because schema resourse is null");
                         }
-                        results.add(schemaResource);
-                     } catch (IOException ioe) {
-                        log.error("IOException while trying to resolve reference " + ref, ioe);
-                        log.info("Ignoring the reference {} cause it could not be resolved", ref);
                      }
                   }
                }
             }
          }
-
          // Finally try to clean up resolved references and associated resources (files)
          referenceResolver.cleanResolvedReferences();
       }
+      // Set the content of main AsyncAPI that may have been updated with dereferenced
+      // dependencies.
+      resource.setContent(rootSpecificationContent);
+
       return results;
    }
 
    @Override
-   public List<Exchange> getMessageDefinitions(Service service, Operation operation) throws MockRepositoryImportException {
+   public List<Exchange> getMessageDefinitions(Service service, Operation operation)
+         throws MockRepositoryImportException {
       List<Exchange> result = new ArrayList<>();
 
       // Retrieve default content type, defaulting to application/json.
       String defaultContentType = "application/json";
-      if (spec.has("defaultContentType")) {
-         defaultContentType = spec.get("defaultContentType").asText("application/json");
+      if (rootSpecification.has("defaultContentType")) {
+         defaultContentType = rootSpecification.get("defaultContentType").asText("application/json");
       }
 
       // Iterate on specification "channels" nodes.
-      Iterator<Entry<String, JsonNode>> channels = spec.path("channels").fields();
+      Iterator<Entry<String, JsonNode>> channels = rootSpecification.path("channels").fields();
       while (channels.hasNext()) {
          Entry<String, JsonNode> channel = channels.next();
          String channelName = channel.getKey();
@@ -272,7 +252,8 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
             if (operation.getName().equals(verbName.toUpperCase() + " " + channelName.trim())) {
                JsonNode messageBody = verb.getValue().path("message");
 
-               // If it's a $ref or multi-structure (oneOf, anyOf, allOf), then navigate to them.
+               // If it's a $ref or multi-structure (oneOf, anyOf, allOf), then navigate to
+               // them.
                List<JsonNode> messageBodies = followRefsIfAny(messageBody);
 
                for (JsonNode extractedMsgBody : messageBodies) {
@@ -282,8 +263,8 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
                      contentType = extractedMsgBody.path("contentType").asText();
                   }
                   // No need to go further if no examples.
-                  if (extractedMsgBody.has("examples")) {
-                     Iterator<JsonNode> examples = extractedMsgBody.path("examples").elements();
+                  if (extractedMsgBody.has(EXAMPLES_NODE)) {
+                     Iterator<JsonNode> examples = extractedMsgBody.path(EXAMPLES_NODE).elements();
                      int exampleIndex = 0;
                      while (examples.hasNext()) {
                         JsonNode exampleNode = examples.next();
@@ -292,10 +273,11 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
                         if (exampleNode.has("name")) {
                            // As of AsyncAPI 2.1.0 () we can now have a 'name' property for examples!
                            eventMessage = extractFromAsyncAPI21Example(contentType, exampleNode);
-                        } else if (exampleNode.has("payload")) {
+                        } else if (exampleNode.has(EXAMPLE_PAYLOAD_NODE)) {
                            // As of https://github.com/microcks/microcks/issues/385, we should support the restriction
                            // coming from AsyncAPI GItHub master revision and associated tooling...
-                           eventMessage = extractFromAsyncAPIExample(contentType, exampleNode, channelName.trim() + "-" + exampleIndex);
+                           eventMessage = extractFromAsyncAPIExample(contentType, exampleNode,
+                                 channelName.trim() + "-" + exampleIndex);
                         } else {
                            eventMessage = extractFromMicrocksExample(contentType, exampleNode);
                         }
@@ -307,7 +289,8 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
                               Map<String, String> parts = pathParametersByExample.get(eventMessage.getName());
                               String resourcePath = URIBuilder.buildURIFromPattern(resourcePathPattern, parts);
                               operation.addResourcePath(resourcePath);
-                              eventMessage.setDispatchCriteria(DispatchCriteriaHelper.buildFromPartsMap(parts));
+                              eventMessage.setDispatchCriteria(
+                                    DispatchCriteriaHelper.buildFromPartsMap(operation.getDispatcherRules(), parts));
                            }
 
                            result.add(new UnidirectionalEvent(eventMessage));
@@ -323,11 +306,11 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
    }
 
    /** Extract the list of operations from Specification. */
-   private List<Operation> extractOperations() throws MockRepositoryImportException {
+   private List<Operation> extractOperations() {
       List<Operation> results = new ArrayList<>();
 
       // Iterate on specification "channels" nodes.
-      Iterator<Entry<String, JsonNode>> channels = spec.path("channels").fields();
+      Iterator<Entry<String, JsonNode>> channels = rootSpecification.path("channels").fields();
       while (channels.hasNext()) {
          Entry<String, JsonNode> channel = channels.next();
          String channelName = channel.getKey();
@@ -361,76 +344,20 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
                }
 
                // We have to look also for bindings. First at the upper channel level.
-               if (channel.getValue().has("bindings")) {
-                  Iterator<String> bindingNames = channel.getValue().path("bindings").fieldNames();
-                  while (bindingNames.hasNext()) {
-                     String bindingName = bindingNames.next();
-                     JsonNode binding = channel.getValue().path("bindings").path(bindingName);
-
-                     switch (bindingName) {
-                        case "ws":
-                           Binding b = retrieveOrInitOperationBinding(operation, BindingType.WS);
-                           if (binding.has("method")) {
-                              b.setMethod(binding.path("method").asText());
-                           }
-                           break;
-                     }
-                  }
+               if (channel.getValue().has(BINDINGS)) {
+                  AsyncAPICommons.completeChannelLevelBindings(operation, channel.getValue().get(BINDINGS));
                }
 
                // Then look for bindings at the operation level.
-               if (verb.getValue().has("bindings")) {
-                  Iterator<String> bindingNames = verb.getValue().path("bindings").fieldNames();
-                  while (bindingNames.hasNext()) {
-                     String bindingName = bindingNames.next();
-                     JsonNode binding = verb.getValue().path("bindings").path(bindingName);
-
-                     switch (bindingName) {
-                        case "kafka":
-                           break;
-                        case "mqtt":
-                           Binding b = retrieveOrInitOperationBinding(operation, BindingType.MQTT);
-                           if (binding.has("qos")) {
-                              b.setQoS(binding.path("qos").asText());
-                           }
-                           if (binding.has("retain")) {
-                              b.setPersistent(binding.path("retain").asBoolean());
-                           }
-                           break;
-                        case "amqp1":
-                           b = retrieveOrInitOperationBinding(operation, BindingType.AMQP1);
-                           if (binding.has("destinationName")) {
-                              b.setDestinationName(binding.path("destinationName").asText());
-                           }
-                           if (binding.has("destinationType")) {
-                              b.setDestinationType(binding.path("destinationType").asText());
-                           }
-                           break;
-                     }
-                  }
+               if (verb.getValue().has(BINDINGS)) {
+                  AsyncAPICommons.completeOperationLevelBindings(operation, verb.getValue().get(BINDINGS));
                }
 
                // Then look for bindings at the message level.
                JsonNode messageBody = verb.getValue().path("message");
                messageBody = followRefIfAny(messageBody);
-               if (messageBody.has("bindings")) {
-                  Iterator<String> bindingNames = messageBody.path("bindings").fieldNames();
-                  while (bindingNames.hasNext()) {
-                     String bindingName = bindingNames.next();
-                     JsonNode binding = messageBody.path("bindings").path(bindingName);
-
-                     switch (bindingName) {
-                        case "kafka":
-                           Binding b = retrieveOrInitOperationBinding(operation, BindingType.KAFKA);
-                           if (binding.has("key")) {
-                              b.setKeyType(binding.path("key").path("type").asText());
-                           }
-                           break;
-                        case "mqtt":
-                        case "amqp1":
-                           break;
-                     }
-                  }
+               if (messageBody.has(BINDINGS)) {
+                  AsyncAPICommons.completeMessageLevelBindings(operation, messageBody.get(BINDINGS));
                }
 
                results.add(operation);
@@ -439,6 +366,25 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       }
 
       return results;
+   }
+
+   /** Browse Json node to extract references and store them into externalRefs. */
+   private void findAllExternalRefsAsyncAPI(JsonNode node, Set<String> externalRefs) {
+      // If node as a $ref child, it's a stop condition.
+      if (node.has("$ref")) {
+         String ref = node.path("$ref").asText();
+         if (!ref.startsWith("#")) {
+            externalRefs.add(ref);
+         } else {
+            findAllExternalRefsAsyncAPI(followRefIfAny(node), externalRefs);
+         }
+      } else {
+         // Iterate on all other children.
+         Iterator<JsonNode> children = node.elements();
+         while (children.hasNext()) {
+            findAllExternalRefsAsyncAPI(children.next(), externalRefs);
+         }
+      }
    }
 
    /** Extract example using the AsyncAPI 2.1 new 'name' property. */
@@ -454,7 +400,7 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       eventMessage.setMediaType(contentType);
 
       // Now complete with specified headers.
-      List<Header> headers = getExampleHeaders(exampleNode);
+      List<Header> headers = AsyncAPICommons.getExampleHeaders(exampleNode);
       for (Header header : headers) {
          eventMessage.addHeader(header);
       }
@@ -474,7 +420,7 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       eventMessage.setMediaType(contentType);
 
       // Now complete with specified headers.
-      List<Header> headers = getExampleHeaders(exampleNode);
+      List<Header> headers = AsyncAPICommons.getExampleHeaders(exampleNode);
       for (Header header : headers) {
          eventMessage.addHeader(header);
       }
@@ -492,7 +438,7 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
          JsonNode example = exampleNode.path(exampleName);
 
          // No need to go further if no payload.
-         if (example.has("payload")) {
+         if (example.has(EXAMPLE_PAYLOAD_NODE)) {
             String exampleValue = getExamplePayload(example);
 
             // Build and store a request object.
@@ -502,7 +448,7 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
             eventMessage.setMediaType(contentType);
 
             // Now complete with specified headers.
-            List<Header> headers = getExampleHeaders(example);
+            List<Header> headers = AsyncAPICommons.getExampleHeaders(example);
             for (Header header : headers) {
                eventMessage.addHeader(header);
             }
@@ -511,59 +457,17 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       return eventMessage;
    }
 
-   /** Extract the list of Header from an example node. */
-   private List<Header> getExampleHeaders(JsonNode example) {
-      List<Header> results = new ArrayList<>();
-
-      if (example.has("headers")) {
-         Iterator<Entry<String, JsonNode>> headers = null;
-
-         if (example.path("headers").getNodeType() == JsonNodeType.OBJECT ) {
-            headers = example.path("headers").fields();
-         } else if (example.path("headers").getNodeType() == JsonNodeType.STRING) {
-            // Try to parse string as a JSON Object...
-            try {
-               ObjectMapper mapper = new ObjectMapper();
-               JsonNode headersNode = mapper.readTree(example.path("headers").asText());
-               headers = headersNode.fields();
-
-            } catch (Exception e) {
-               log.warn("Headers value {} is a string but not JSON, skipping it", example.path("headers").asText());
-            }
-         }
-
-         if (headers != null) {
-            while (headers.hasNext()) {
-               Entry<String, JsonNode> property = headers.next();
-               String propertyName = property.getKey();
-
-               Header header = new Header();
-               header.setName(property.getKey());
-               // Values may be multiple and CSV.
-               Set<String> headerValues = Arrays.stream(property.getValue().asText().split(","))
-                     .map(value -> value.trim())
-                     .collect(Collectors.toSet());
-               header.setValues(headerValues);
-               results.add(header);
-            }
-         }
-      }
-      return results;
-   }
-
-   /** Get the value of an example. This can be direct value field or those of followed $ref. */
+   /**
+    * Get the value of an example. This can be direct value field or those of followed $ref.
+    */
    private String getExamplePayload(JsonNode example) {
-      if (example.has("payload")) {
-         if (example.path("payload").getNodeType() == JsonNodeType.ARRAY ||
-               example.path("payload").getNodeType() == JsonNodeType.OBJECT ) {
-            return example.path("payload").toString();
-         }
-         return example.path("payload").asText();
+      if (example.has(EXAMPLE_PAYLOAD_NODE)) {
+         return getValueString(example.path(EXAMPLE_PAYLOAD_NODE));
       }
       if (example.has("$payloadRef")) {
          // $ref: '#/components/examples/param_laurent'
          String ref = example.path("$payloadRef").asText();
-         JsonNode component = spec.at(ref.substring(1));
+         JsonNode component = rootSpecification.at(ref.substring(1));
          return getExamplePayload(component);
       }
       return null;
@@ -575,8 +479,8 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
    }
 
    /**
-    * Extract parameters within a channel node and organize them by example.
-    * Key of value map is param name. Value of value map is param value ;-)
+    * Extract parameters within a channel node and organize them by example. Key of value map is param name. Value of
+    * value map is param value ;-)
     */
    private Map<String, Map<String, String>> extractParametersByExample(JsonNode node) {
       Map<String, Map<String, String>> results = new HashMap<>();
@@ -591,53 +495,65 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
          String parameterName = parameterEntry.getKey();
          log.debug("Processing param {}", parameterName);
 
-         if (parameter.has("schema") && parameter.path("schema").has("examples")) {
-            Iterator<String> exampleNames = parameter.path("schema").path("examples").fieldNames();
+         if (parameter.has(SCHEMA_NODE) && parameter.path(SCHEMA_NODE).has(EXAMPLES_NODE)) {
+            JsonNode examplesNode = parameter.path(SCHEMA_NODE).path(EXAMPLES_NODE);
 
-            while (exampleNames.hasNext()) {
-               String exampleName = exampleNames.next();
-               log.debug("Processing example {}", exampleName);
+            if (examplesNode.isObject()) {
+               Iterator<String> exampleNames = parameter.path(SCHEMA_NODE).path(EXAMPLES_NODE).fieldNames();
 
-               JsonNode example = parameter.path("schema").path("examples").path(exampleName);
-               String exampleValue = getExampleValue(example);
-               log.debug("{} {} {}", parameterName, exampleName, exampleValue);
+               while (exampleNames.hasNext()) {
+                  String exampleName = exampleNames.next();
+                  log.debug("Processing example {}", exampleName);
 
-               Map<String, String> exampleParams = results.get(exampleName);
-               if (exampleParams == null) {
-                  exampleParams = new HashMap<>();
-                  results.put(exampleName, exampleParams);
+                  JsonNode example = parameter.path(SCHEMA_NODE).path(EXAMPLES_NODE).path(exampleName);
+                  String exampleValue = getExampleValue(example);
+                  log.debug("{} {} {}", parameterName, exampleName, exampleValue);
+
+                  Map<String, String> exampleParams = results.computeIfAbsent(exampleName, k -> new HashMap<>());
+                  exampleParams.put(parameterName, exampleValue);
                }
-               exampleParams.put(parameterName, exampleValue);
+            } else if (examplesNode.isArray()) {
+               Iterator<JsonNode> examples = examplesNode.elements();
+               while (examples.hasNext()) {
+                  JsonNode exampleNode = examples.next();
+
+                  String exampleName = null;
+                  String exampleValue = null;
+
+                  // Try processing the "name:value" form
+                  if (exampleNode.asText().contains(":")) {
+                     String example = exampleNode.asText();
+                     exampleName = example.substring(0, example.indexOf(":"));
+                     exampleValue = example.substring(example.indexOf(":") + 1);
+                  } else {
+                     // Try processing the "name: > value: value" form
+                     exampleName = exampleNode.fieldNames().next();
+                     exampleValue = getExampleValue(exampleNode.fields().next().getValue());
+                  }
+                  log.debug("{} {} {}", parameterName, exampleName, exampleValue);
+
+                  Map<String, String> exampleParams = results.computeIfAbsent(exampleName, k -> new HashMap<>());
+                  exampleParams.put(parameterName, exampleValue);
+               }
             }
          }
       }
       return results;
    }
 
-   /** Get the value of an example. This can be direct value field or those of followed $ref */
+   /**
+    * Get the value of an example. This can be direct value field or those of followed $ref
+    */
    private String getExampleValue(JsonNode example) {
-      if (example.has("value")) {
-         if (example.path("value").getNodeType() == JsonNodeType.ARRAY ||
-               example.path("value").getNodeType() == JsonNodeType.OBJECT) {
-            return example.path("value").toString();
-         }
-         return example.path("value").asText();
+      if (example.has(EXAMPLE_VALUE_NODE)) {
+         JsonNode valueNode = followRefIfAny(example.path(EXAMPLE_VALUE_NODE));
+         return getValueString(valueNode);
       }
       if (example.has("$ref")) {
-         // $ref: '#/components/examples/param_laurent'
          JsonNode component = followRefIfAny(example);
          return getExampleValue(component);
       }
       return null;
-   }
-
-   /** */
-   private JsonNode followRefIfAny(JsonNode referencableNode) {
-      if (referencableNode.has("$ref")) {
-         String ref = referencableNode.path("$ref").asText();
-         return spec.at(ref.substring(1));
-      }
-      return referencableNode;
    }
 
    /** */
@@ -646,13 +562,13 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
       if (referencableNode.has("$ref")) {
          // Extract single reference.
          String ref = referencableNode.path("$ref").asText();
-         results.add(spec.at(ref.substring(1)));
+         results.add(rootSpecification.at(ref.substring(1)));
       } else {
          // Check for multi-structures.
          for (String structure : MULTI_STRUCTURES) {
             if (referencableNode.has(structure) && referencableNode.path(structure).isArray()) {
                ArrayNode arrayNode = (ArrayNode) referencableNode.path(structure);
-               for (int i=0; i<arrayNode.size(); i++) {
+               for (int i = 0; i < arrayNode.size(); i++) {
                   JsonNode structureNode = arrayNode.get(i);
                   results.add(followRefIfAny(structureNode));
                }
@@ -664,18 +580,5 @@ public class AsyncAPIImporter implements MockRepositoryImporter {
          results.add(referencableNode);
       }
       return results;
-   }
-
-   /** */
-   private static Binding retrieveOrInitOperationBinding(Operation operation, BindingType type) {
-      Binding binding = null;
-      if (operation.getBindings() != null) {
-         binding = operation.getBindings().get(type);
-      }
-      if (binding == null) {
-         binding = new Binding(type);
-         operation.addBinding(type.toString(), binding);
-      }
-      return binding;
    }
 }

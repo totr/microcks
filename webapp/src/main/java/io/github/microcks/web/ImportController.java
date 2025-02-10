@@ -1,32 +1,28 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.web;
 
 import io.github.microcks.service.ImportExportService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
+import io.github.microcks.util.SafeLogger;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,27 +34,34 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api")
 public class ImportController {
 
-   /** A simple logger for diagnostic messages. */
-   private static Logger log = LoggerFactory.getLogger(ImportController.class);
+   /** A safe logger for filtering user-controlled data in diagnostic messages. */
+   private static final SafeLogger log = SafeLogger.getLogger(ImportController.class);
 
-   @Autowired
-   private ImportExportService importExportService;
+   private final ImportExportService importExportService;
 
-   @RequestMapping(value = "/import", method = RequestMethod.POST)
-   public ResponseEntity<?> importRepository(@RequestParam(value = "file") MultipartFile file) {
+   /**
+    * Create new ImportController with required service.
+    * @param importExportService The service for managing imports.
+    */
+   public ImportController(ImportExportService importExportService) {
+      this.importExportService = importExportService;
+   }
+
+   @PostMapping(value = "/import")
+   public ResponseEntity<byte[]> importRepository(@RequestParam(value = "file") MultipartFile file) {
       log.debug("Importing new services and resources definitions");
-      if (!file.isEmpty()){
-         log.debug("Content type of " + file.getOriginalFilename() + " is " + file.getContentType());
-         if (MediaType.APPLICATION_JSON_VALUE.equals(file.getContentType())){
+      if (!file.isEmpty()) {
+         log.debug("Content type of {} is {}", file.getOriginalFilename(), file.getContentType());
+         if (MediaType.APPLICATION_JSON_VALUE.equals(file.getContentType())) {
             try {
                byte[] bytes = file.getBytes();
                String json = new String(bytes);
                importExportService.importRepository(json);
-            } catch (Exception e){
+            } catch (Exception e) {
                log.error(e.getMessage());
             }
          }
       }
-      return new ResponseEntity<Object>(HttpStatus.CREATED);
+      return new ResponseEntity<>(HttpStatus.CREATED);
    }
 }

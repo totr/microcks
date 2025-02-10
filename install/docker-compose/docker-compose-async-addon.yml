@@ -2,7 +2,7 @@ version: '2'
 
 services:
   zookeeper:
-    image: strimzi/kafka:0.17.0-kafka-2.4.0
+    image: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
     container_name: microcks-zookeeper
     command: [
       "sh", "-c", "bin/zookeeper-server-start.sh config/zookeeper.properties"
@@ -15,7 +15,7 @@ services:
   kafka:
     depends_on:
       - zookeeper
-    image: strimzi/kafka:0.17.0-kafka-2.4.0
+    image: quay.io/strimzi/kafka:0.43.0-kafka-3.8.0
     container_name: microcks-kafka
     command: [
       "sh", "-c",
@@ -36,7 +36,7 @@ services:
       - mongo
       - keycloak
       - postman
-    image: quay.io/microcks/microcks:latest
+    image: quay.io/microcks/microcks:1.11.0
     container_name: microcks
     volumes:
       - "./config:/deployments/config"
@@ -50,8 +50,9 @@ services:
       - POSTMAN_RUNNER_URL=http://postman:3000
       - TEST_CALLBACK_URL=http://microcks:8080
       - SERVICES_UPDATE_INTERVAL=0 0 0/2 * * *
-      - KEYCLOAK_URL=http://keycloak:8080/auth
-      - KEYCLOAK_PUBLIC_URL=http://localhost:18080/auth
+      - KEYCLOAK_URL=http://keycloak:8080
+      - KEYCLOAK_PUBLIC_URL=http://localhost:18080
+      - JAVA_OPTIONS=-Dspring.security.oauth2.resourceserver.jwt.issuer-uri=http://localhost:18080/realms/microcks -Dspring.security.oauth2.resourceserver.jwt.jwk-set-uri=http://keycloak:8080/realms/microcks/protocol/openid-connect/certs
       - ASYNC_MINION_URL=http://microcks-async-minion:8081
       - KAFKA_BOOTSTRAP_SERVER=kafka:19092
 
@@ -60,7 +61,7 @@ services:
       - app
     ports:
       - "8081:8081"
-    image: quay.io/microcks/microcks-async-minion:latest
+    image: quay.io/microcks/microcks-async-minion:1.11.0
     container_name: microcks-async-minion
     restart: on-failure
     volumes:

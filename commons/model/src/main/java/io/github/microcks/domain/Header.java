@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.domain;
 
@@ -22,8 +19,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Companion objects for all messages implementations instances.
- * Represent some transport headers for both requests and responses.
+ * Companion objects for all messages implementations instances. Represent some transport headers for both requests and
+ * responses.
  * @author laurent
  */
 public class Header {
@@ -31,6 +28,22 @@ public class Header {
    private String name;
 
    private Set<String> values = new HashSet<>();
+
+   /**
+    * Default empty constructor.
+    */
+   public Header() {
+   }
+
+   /**
+    * Build a new Header with a name and a set of values.
+    * @param name   The header name
+    * @param values The set of values for this header
+    */
+   public Header(String name, Set<String> values) {
+      this.name = name;
+      this.values = values;
+   }
 
    public String getName() {
       return name;

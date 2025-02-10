@@ -1,31 +1,30 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-import { Injectable } from "@angular/core";
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { User } from "../models/user.model";
+import { User } from '../models/user.model';
 
-let DEFAULT_CONFIG: any = {
-  mode: "dev",
+const DEFAULT_CONFIG: any = {
+  mode: 'dev',
   auth: {
-    type: "keycloakjs"
+    type: 'keycloakjs'
   }
 };
+
+const ANONYMOUS_AUTH_TYPE = 'anonymous';
 
 /**
  * A base service holding configuration of Microcks App.
@@ -35,15 +34,23 @@ export class ConfigService {
 
   private config: any;
 
-  
+
   constructor(private http: HttpClient) {
-    let w: any = window;
-    if (w["MicrocksConfig"]) {
-      this.config = w["MicrocksConfig"];
-      console.info("[ConfigService] Found app config.");
+    const w: any = window;
+    if (w.MicrocksConfig) {
+      this.config = w.MicrocksConfig;
+      console.info('[ConfigService] Found app config.');
     } else {
-      console.info("[ConfigService] App config not found!");
+      console.info('[ConfigService] App config not found!');
       this.config = DEFAULT_CONFIG;
+
+      // Check Keycloak realm configuration.
+      const keycloak = w.keycloak;
+      console.log('[ConfigService] w[\'keycloak\']: ' + JSON.stringify(w.keycloak));
+      if (!keycloak || !keycloak.realm) {
+        console.info('[ConfigService] No Keycloak realm found. Switching to anonymous auth type.');
+        this.config.auth.type = ANONYMOUS_AUTH_TYPE;
+      }
     }
   }
 
@@ -83,15 +90,15 @@ export class ConfigService {
   }
 
   public user(): User {
-    return <any>this.config.user;
+    return this.config.user as any;
   }
 
-  public loadConfiguredFeatures() : Promise<any>  {
-    console.info("[ConfigService] Completing config with additional features...");
+  public loadConfiguredFeatures(): Promise<any>  {
+    console.info('[ConfigService] Completing config with additional features...');
     const featurePromise = this.http.get<any>('/api/features/config')
       .toPromise().then(results => {
         this.config.features = results;
-        console.info("[ConfigService] Got config: " + JSON.stringify(this.config.features));
+        console.info('[ConfigService] Got config: ' + JSON.stringify(this.config.features));
         return results;
       });
     return featurePromise;
@@ -99,15 +106,15 @@ export class ConfigService {
 
   public hasFeatureEnabled(feature: string): boolean {
     if (this.config.features) {
-      let featureConfig = this.config.features[feature];
-      return featureConfig['enabled'] === 'true';
+      const featureConfig = this.config.features[feature];
+      return featureConfig.enabled === 'true';
     }
     return false;
   }
 
   public getFeatureProperty(feature: string, property: string): string {
     if (this.config.features) {
-      let featureConfig = this.config.features[feature];
+      const featureConfig = this.config.features[feature];
       return featureConfig[property];
     }
     return null;

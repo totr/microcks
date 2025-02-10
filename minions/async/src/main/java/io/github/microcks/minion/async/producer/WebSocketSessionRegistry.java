@@ -1,57 +1,51 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 package io.github.microcks.minion.async.producer;
 
-import org.jboss.logging.Logger;
-
-import javax.enterprise.context.ApplicationScoped;
-import javax.websocket.Session;
+import jakarta.enterprise.context.ApplicationScoped;
+import jakarta.websocket.Session;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
-@ApplicationScoped
 /**
- * Simple registry for holding WebSocket sessions based on the requested channel path.
- * This registry is intended to be shared by the different WebSocket endpoints that allows
- * client registration. Root producer will then use the registry to select target sessions
- * when a mock get published on a channel path.
+ * Simple registry for holding WebSocket sessions based on the requested channel path. This registry is intended to be
+ * shared by the different WebSocket endpoints that allows client registration. Root producer will then use the registry
+ * to select target sessions when a mock get published on a channel path.
  * @author laurent
  */
+@ApplicationScoped
 public class WebSocketSessionRegistry {
 
-   /** Get a JBoss logging logger. */
-   private final Logger logger = Logger.getLogger(getClass());
-
-   private Map<String, List<Session>> sessions = new ConcurrentHashMap<>();
+   private final Map<String, List<Session>> sessions = new ConcurrentHashMap<>();
 
    /**
     * Store a session within registry according the requested URI.
     * @param session A WebSocket session
     */
    public void putSession(Session session) {
-      List<Session> channelSessions = sessions.get(session.getRequestURI().toString());
-      if (channelSessions == null) {
-         channelSessions = new ArrayList<>();
-         sessions.put(session.getRequestURI().toString(), channelSessions);
+      // As session.getRequestURI() doubles query parameters but session.getQueryString() not,
+      // we need to build the channelURI manually.
+      String channelURI = session.getRequestURI().getPath();
+      if (session.getQueryString() != null) {
+         channelURI += "?" + session.getQueryString();
       }
+
+      List<Session> channelSessions = sessions.computeIfAbsent(channelURI, k -> new ArrayList<>());
       channelSessions.add(session);
    }
 

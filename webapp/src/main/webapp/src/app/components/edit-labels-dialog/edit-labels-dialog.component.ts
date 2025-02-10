@@ -1,27 +1,24 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
 
 import { BsModalRef } from 'ngx-bootstrap/modal';
 
 @Component({
-  selector: 'edit-labels-dialog',
+  selector: 'app-edit-labels-dialog',
   templateUrl: './edit-labels-dialog.component.html',
   styleUrls: ['./edit-labels-dialog.component.css']
 })
@@ -34,10 +31,10 @@ export class EditLabelsDialogComponent implements OnInit {
   labels: any;
   closeBtnName: string;
 
-  labelKV: string = "";
+  labelKV = '';
 
   constructor(public bsModalRef: BsModalRef) {}
- 
+
   ngOnInit() {
     if (this.labels == null) {
       this.labels = new Map();
@@ -45,7 +42,7 @@ export class EditLabelsDialogComponent implements OnInit {
   }
 
   saveLabels(): void {
-    //console.log("[EditLabelsDialogComponent saveLabels] with " + JSON.stringify(this.labels));
+    // console.log("[EditLabelsDialogComponent saveLabels] with " + JSON.stringify(this.labels));
     this.saveLabelsAction.emit(this.labels);
     this.bsModalRef.hide();
   }

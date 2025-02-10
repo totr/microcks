@@ -1,20 +1,17 @@
 /*
- * Licensed to Laurent Broudoux (the "Author") under one
- * or more contributor license agreements.  See the NOTICE file
- * distributed with this work for additional information
- * regarding copyright ownership. Author licenses this
- * file to you under the Apache License, Version 2.0 (the
- * "License"); you may not use this file except in compliance
- * with the License.  You may obtain a copy of the License at
+ * Copyright The Microcks Authors.
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
- * under the License.
+ *  http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
@@ -26,7 +23,7 @@ import { RequestResponsePair, UnidirectionalEvent } from '../models/service.mode
 @Injectable({ providedIn: 'root' })
 export class TestsService {
 
-  private rootUrl: string = '/api';
+  private rootUrl = '/api';
 
   constructor(private http: HttpClient) { }
 
@@ -52,8 +49,8 @@ export class TestsService {
     // Replace them by "!" and implement same protocole on server-side.
     // Switched from _ to ! in replacement as less commonly used in URL parameters, in line with other frameworks e.g. Drupal
     operation = operation.replace(/\//g, '!');
-    var testCaseId = test.id + '-' + test.testNumber + '-' + encodeURIComponent(operation);
-    console.log("[getMessages] called for " + testCaseId);
+    const testCaseId = test.id + '-' + test.testNumber + '-' + encodeURIComponent(operation);
+    console.log('[getMessages] called for ' + testCaseId);
     return this.http.get<RequestResponsePair>(this.rootUrl + '/tests/' + test.id + '/messages/' + testCaseId);
   }
 
@@ -62,8 +59,8 @@ export class TestsService {
     // Replace them by "!" and implement same protocole on server-side.
     // Switched from _ to ! in replacement as less commonly used in URL parameters, in line with other frameworks e.g. Drupal
     operation = operation.replace(/\//g, '!');
-    var testCaseId = test.id + '-' + test.testNumber + '-' + encodeURIComponent(operation);
-    console.log("[getEventMessages] called for " + testCaseId);
+    const testCaseId = test.id + '-' + test.testNumber + '-' + encodeURIComponent(operation);
+    console.log('[getEventMessages] called for ' + testCaseId);
     return this.http.get<UnidirectionalEvent>(this.rootUrl + '/tests/' + test.id + '/events/' + testCaseId);
   }
 }
